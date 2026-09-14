@@ -153,6 +153,7 @@ th{text-align:left;padding:11px 14px;background:#F9FAFB;color:var(--text2);font-
 td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:middle;}
 tr:last-child td{border-bottom:none;}
 .table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border);background:#fff;}
+.table-wrap table thead th{position:sticky;top:0;background:#F9FAFB;z-index:2;box-shadow:0 1px 0 var(--border);}
 .table-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
 .search-box{position:relative;min-width:220px;flex:1;max-width:340px;}
 .search-box input{padding-left:34px;}
@@ -251,10 +252,12 @@ tr:last-child td{border-bottom:none;}
   .login-hero{display:none;}
   .palette-panel{position:fixed;right:-280px;top:0;bottom:0;z-index:60;transition:right .2s;box-shadow:var(--shadow-lg);}
   .palette-panel.open{right:0;}
-  .exam-main{padding:16px 14px 130px;}
+  .palette-backdrop{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:59;}
+  .palette-backdrop.open{display:block;}
+  .exam-main{padding:16px 14px 170px;}
   .qbox{padding:18px;}
   .exam-toolbar{padding:10px 14px;position:fixed;bottom:0;left:0;right:0;}
-  .exam-body{padding-bottom:70px;}
+  .exam-body{padding-bottom:100px;}
 }
 @media(max-width:600px){
   .hero-stats{display:none;}
@@ -265,7 +268,7 @@ tr:last-child td{border-bottom:none;}
 
 .fab-palette-btn{display:none;}
 @media(max-width:900px){
-  .fab-palette-btn{display:flex;position:fixed;bottom:78px;right:16px;z-index:55;background:var(--navy);color:#fff;border-radius:100px;padding:11px 18px;font-weight:700;font-size:12.5px;align-items:center;gap:6px;box-shadow:var(--shadow-lg);border:none;}
+  .fab-palette-btn{display:flex;position:fixed;bottom:112px;right:16px;z-index:65;background:var(--navy);color:#fff;border-radius:100px;padding:11px 18px;font-weight:700;font-size:12.5px;align-items:center;gap:6px;box-shadow:var(--shadow-lg);border:none;}
 }
 
 .result-score{font-family:'Manrope';font-weight:800;font-size:52px;color:var(--navy);}
@@ -843,6 +846,25 @@ function svgBarChart(data, {width=560,height=200,color='#155EEF',max=null}={}){
     <line x1="30" y1="${height-30}" x2="${width-10}" y2="${height-30}" stroke="#E4E7EC"/>
     ${bars}${labels}
   </svg>`;
+}
+// Horizontal bar chart — used wherever there can be MANY categories (e.g.
+// 15-20+ subjects). A vertical bar chart squeezes labels into a narrow
+// column each, causing them to overlap once there are more than ~8 bars;
+// a horizontal layout gives every label its own full-width row instead,
+// so it stays readable no matter how many subjects there are.
+function svgHorizontalBarChart(data, {width=560,rowHeight=26,labelWidth=120,color='#155EEF',max=null}={}){
+  const m = max ?? Math.max(1,...data.map(d=>d.value));
+  const chartW = width - labelWidth - 50; // space left for the bar itself after the label + value columns
+  const height = data.length*rowHeight + 10;
+  let rows='';
+  data.forEach((d,i)=>{
+    const y = 10 + i*rowHeight;
+    const barW = Math.max(2, (d.value/m)*chartW);
+    rows += `<text x="${labelWidth-8}" y="${y+rowHeight*0.65}" font-size="12" fill="#344054" text-anchor="end">${esc(d.label)}</text>
+      <rect x="${labelWidth}" y="${y+4}" width="${barW}" height="${rowHeight-10}" rx="4" fill="${d.color||color}"></rect>
+      <text x="${labelWidth+barW+8}" y="${y+rowHeight*0.65}" font-size="11.5" fill="#101828" font-weight="700">${d.value}${d.suffix||''}</text>`;
+  });
+  return `<svg viewBox="0 0 ${width} ${height}" width="100%" style="max-width:${width}px;display:block;">${rows}</svg>`;
 }
 function svgLineChart(points,{width=560,height=180,color='#155EEF'}={}){
   const max = Math.max(1,...points.map(p=>p.y));
@@ -1589,6 +1611,16 @@ function partStatusSummary(part){
     ? REASON_LABEL[lastTouched.submit_reason] || lastTouched.submit_reason : null;
   return {label, cls, completed, total, liveNow, reasonNote};
 }
+function fmtDuration(sec){
+  if(sec==null || sec<=0) return '—';
+  const h = Math.floor(sec/3600), m = Math.round((sec%3600)/60);
+  if(h>0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+function fmtTimeOfDay(iso){
+  if(!iso) return '—';
+  return new Date(iso).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+}
 function renderManageAttemptsModal(testId, testName, rows){
   const q = (S.attemptsFilter||'').toLowerCase();
   const filtered = q? rows.filter(r=>r.student_name.toLowerCase().includes(q) || r.roll_id.toLowerCase().includes(q)) : rows;
@@ -1599,7 +1631,7 @@ function renderManageAttemptsModal(testId, testName, rows){
       <span class="badge ${liveCount?'badge-success':'badge-grey'}">🟢 ${liveCount} student(s) live right now</span>
     </div>
     <div class="table-wrap" style="max-height:520px;overflow:auto;"><table>
-      <thead><tr><th>Student</th>${rows[0]? rows[0].parts.map(p=>`<th>${esc(p.part_name)}</th>`).join('') : ''}<th>Score</th><th>Attempts</th><th></th></tr></thead>
+      <thead><tr><th>Student</th>${rows[0]? rows[0].parts.map(p=>`<th>${esc(p.part_name)}</th>`).join('') : ''}<th>Start</th><th>Submit</th><th>Total Time</th><th>Score</th><th>Attempts</th><th></th></tr></thead>
       <tbody>
       ${filtered.length? filtered.map(r=>{
         const scoreCell = r.attempt_status==='submitted'
@@ -1609,8 +1641,11 @@ function renderManageAttemptsModal(testId, testName, rows){
           <td><b>${esc(r.student_name)}</b><br><span style="color:var(--text2);font-size:12px">${esc(r.roll_id)}</span></td>
           ${(r.parts||[]).map(p=>{
             const st = partStatusSummary(p);
-            return `<td><span class="badge ${st.cls}" style="font-size:11px;">${st.label}</span>${st.reasonNote?`<br><span style="font-size:10.5px;color:var(--text2);" title="${esc(st.reasonNote)}">${esc(st.reasonNote)}</span>`:''}</td>`;
+            return `<td><span class="badge ${st.cls}" style="font-size:11px;">${st.label}</span>${st.reasonNote?`<br><span style="font-size:10.5px;color:var(--text2);" title="${esc(st.reasonNote)}">${esc(st.reasonNote)}</span>`:''}${p.part_time_sec>0?`<br><span style="font-size:10.5px;color:var(--text2);">⏱ ${fmtDuration(p.part_time_sec)}</span>`:''}</td>`;
           }).join('')}
+          <td style="font-size:12px;">${fmtTimeOfDay(r.started_at)}</td>
+          <td style="font-size:12px;">${r.attempt_status==='submitted'? fmtTimeOfDay(r.submitted_at) : '—'}</td>
+          <td style="font-size:12px;"><b>${fmtDuration(r.time_used_sec)}</b></td>
           <td>${scoreCell}</td>
           <td>${r.attempts_used}/${r.max_attempts}${r.extra_attempts? ` <span class="badge badge-blue">+${r.extra_attempts}</span>`:''}</td>
           <td><div style="display:flex;gap:6px;flex-wrap:wrap;">
@@ -1619,10 +1654,10 @@ function renderManageAttemptsModal(testId, testName, rows){
             <button class="btn btn-sm btn-outline" onclick="grantExtraAttempt('${testId}','${r.student_id}','${esc(testName)}')">+1 Attempt</button>
           </div></td>
         </tr>`;
-      }).join('') : `<tr><td colspan="6"><div class="empty-state">No active students found.</div></td></tr>`}
+      }).join('') : `<tr><td colspan="9"><div class="empty-state">No active students found.</div></td></tr>`}
       </tbody>
     </table></div>
-  `, 980);
+  `, 1180);
   $('#attSearch').oninput=(e)=>{ S.attemptsFilter=e.target.value; renderManageAttemptsModal(testId, testName, rows); };
 }
 window.resetStudentAttempt = async(attemptId, testId, testName)=>{
@@ -2209,30 +2244,48 @@ async function adminLive(root){
     return;
   }
 
-  const { data: rows, error: monErr } = await sb.rpc('admin_get_live_monitor', {p_test_id: S.liveTestSel});
   root.innerHTML = `
     <div class="table-toolbar">
       <select id="liveTestSel" style="max-width:320px;">${liveTests.map(t=>`<option value="${t.id}" ${S.liveTestSel===t.id?'selected':''}>${esc(t.name)}</option>`).join('')}</select>
       <span class="badge badge-success">● LIVE</span>
+      <span id="liveRefreshIndicator" style="font-size:11.5px;color:var(--text2);">Auto-updates every 5s</span>
     </div>
     <div class="card pad">
       <h4 style="font-size:15px;margin-bottom:12px;">Live participant monitor</h4>
-      <p style="font-size:12px;color:var(--text2);margin-bottom:12px;">Shows students who currently have an active (in-progress) section timer running for this test — real-time from the database.</p>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:12px;">Shows students who currently have an active (in-progress) section timer running for this test — refreshes automatically, no need to reload the page.</p>
       <div class="table-wrap"><table>
         <thead><tr><th>Student</th><th>Part / Section</th><th>Progress</th><th>Time Remaining</th><th>Status</th></tr></thead>
-        <tbody>
-        ${monErr? `<tr><td colspan="5"><div class="empty-state">Could not load: ${esc(monErr.message)}</div></td></tr>` :
-          rows.length? rows.map(r=>`<tr><td><b>${esc(r.student_name)}</b><br><span style="font-size:12px;color:var(--text2)">${esc(r.student_id)}</span></td>
-            <td>${esc(r.part_name)} — ${esc(r.section_name)}</td>
-            <td><div class="progress-bar" style="width:120px;"><div style="width:${Math.round(r.answered/Math.max(r.total,1)*100)}%"></div></div> ${r.answered}/${r.total}</td>
-            <td>${fmtClock(r.time_remaining_sec)}</td>
-            <td><span class="badge badge-success">Active</span></td></tr>`).join('')
-          : `<tr><td colspan="5"><div class="empty-state">No students are currently in an active section for this test.</div></td></tr>`}
-        </tbody>
+        <tbody id="liveMonitorBody"><tr><td colspan="5"><div class="empty-state">Loading…</div></td></tr></tbody>
       </table></div>
     </div>
   `;
   $('#liveTestSel').onchange=(e)=>{ S.liveTestSel=e.target.value; renderAdminSection($('#adminMain')); };
+
+  await refreshLiveMonitorTable();
+  // Self-terminating auto-refresh: keeps polling every 5s only while the
+  // admin is actually still looking at this Live Exams tab. As soon as
+  // they switch to a different admin section, this loop notices and stops
+  // itself — no manual refresh needed while it's open, no wasted requests
+  // once they leave.
+  if(S.liveMonitorTimer) clearInterval(S.liveMonitorTimer);
+  S.liveMonitorTimer = setInterval(async()=>{
+    if(S.adminSection !== 'live' || !document.getElementById('liveMonitorBody')){
+      clearInterval(S.liveMonitorTimer); S.liveMonitorTimer = null; return;
+    }
+    await refreshLiveMonitorTable();
+  }, 5000);
+}
+async function refreshLiveMonitorTable(){
+  const tbody = $('#liveMonitorBody');
+  if(!tbody) return;
+  const { data: rows, error: monErr } = await sb.rpc('admin_get_live_monitor', {p_test_id: S.liveTestSel});
+  tbody.innerHTML = monErr? `<tr><td colspan="5"><div class="empty-state">Could not load: ${esc(monErr.message)}</div></td></tr>` :
+    (rows&&rows.length)? rows.map(r=>`<tr><td><b>${esc(r.student_name)}</b><br><span style="font-size:12px;color:var(--text2)">${esc(r.student_id)}</span></td>
+      <td>${esc(r.part_name)} — ${esc(r.section_name)}</td>
+      <td><div class="progress-bar" style="width:120px;"><div style="width:${Math.round(r.answered/Math.max(r.total,1)*100)}%"></div></div> ${r.answered}/${r.total}</td>
+      <td>${fmtClock(r.time_remaining_sec)}</td>
+      <td><span class="badge badge-success">Active</span></td></tr>`).join('')
+    : `<tr><td colspan="5"><div class="empty-state">No students are currently in an active section for this test.</div></td></tr>`;
 }
 
 
@@ -2282,6 +2335,7 @@ window.viewAttemptDetail = async(attemptId)=>{
       const result = d.is_correct===true?'correct':d.is_correct===false?'incorrect':'unattempted';
       const icon = result==='correct'?'✅':result==='incorrect'?'❌':'—';
       return `<div class="qcard"><div class="qmeta"><span class="badge badge-grey">Q${i+1}</span><span class="badge badge-blue">${esc(d.subject)}</span><span class="badge ${result==='correct'?'badge-success':result==='incorrect'?'badge-error':'badge-grey'}">${icon} ${result}</span>
+      ${d.is_marked? `<span class="badge badge-warning">🚩 Marked</span>`:''}
       <span class="badge badge-grey">${d.time_spent_sec? Math.round(d.time_spent_sec)+'s':'—'}</span></div>
       <p style="font-size:13.5px;">${esc(d.text)}</p><p style="font-size:12.5px;color:var(--text2);">Selected: ${d.selected||'—'} · Correct: ${d.correct||'—'}</p></div>`;
     }).join('') || '<div class="empty-state">No responses recorded for this attempt.</div>'}
@@ -2311,7 +2365,7 @@ async function adminAnalytics(root){
     subjAgg[q.subject].correct += q.correct;
     subjAgg[q.subject].attempted += q.attempted;
   });
-  const subjData = Object.entries(subjAgg).map(([s,v])=>({label:s.slice(0,6), value: v.attempted? Math.round(v.correct/v.attempted*100):0}));
+  const subjData = Object.entries(subjAgg).map(([s,v])=>({label:s, value: v.attempted? Math.round(v.correct/v.attempted*100):0})).sort((a,b)=>a.value-b.value);
 
   const list = qstats||[];
   const withAttempts = list.filter(q=>q.attempted>0);
@@ -2330,7 +2384,7 @@ async function adminAnalytics(root){
     </div>
     ${subjData.length? `<div class="card pad" style="margin-bottom:16px;">
       <h4 style="font-size:15px;margin-bottom:10px;">Subject-wise performance</h4>
-      <div class="svg-chart-wrap">${svgBarChart(subjData,{color:'#155EEF',max:100})}</div>
+      <div class="svg-chart-wrap" style="max-height:400px;overflow-y:auto;">${svgHorizontalBarChart(subjData.map(d=>({...d,suffix:'%'})),{color:'#155EEF',max:100})}</div>
     </div>` : ''}
     <div class="row">
       <div class="card pad" style="flex:1;min-width:320px;">
@@ -2558,24 +2612,39 @@ async function studentAnalytics(root){
     </div>
 
     ${subj.length? `<div class="card pad" style="margin-bottom:18px;">
-      <h4 style="font-size:15px;margin-bottom:12px;">Subject-wise accuracy</h4>
-      <div class="svg-chart-wrap">${svgBarChart(subj.map(s=>({label:s.subject.slice(0,8), value:s.accuracy})), {color:'#F59E0B', max:100})}</div>
+      <h4 style="font-size:15px;margin-bottom:4px;">Subject-wise performance (all tests combined)</h4>
+      <div class="svg-chart-wrap" style="max-height:400px;overflow-y:auto;">${svgHorizontalBarChart(subj.map(s=>({label:s.subject, value:s.correct_pct, suffix:'%'})), {color:'#F59E0B', max:100})}</div>
+      <p style="font-size:12px;color:var(--text2);margin-top:8px;"><b>Correct %</b> is out of every question you've ever seen in that subject across all your tests — not just the ones you attempted.</p>
+      <div class="table-wrap" style="margin-top:12px;overflow-x:auto;">
+        <table>
+          <thead><tr><th>Subject</th><th>Total</th><th>Correct</th><th>Wrong</th><th>DNP</th><th>Correct %</th><th>Attempted</th><th>Accuracy</th></tr></thead>
+          <tbody>
+          ${subj.map(s=>`<tr>
+            <td><b>${esc(s.subject)}</b></td><td>${s.total}</td>
+            <td style="color:var(--success)">${s.correct}</td><td style="color:var(--error)">${s.wrong}</td><td style="color:var(--text2)">${s.dnp}</td>
+            <td><b style="color:${s.correct_pct>=70?'#12B76A':s.correct_pct>=50?'#B45309':'#F04438'}">${s.correct_pct}%</b></td>
+            <td>${s.attempted}</td>
+            <td>${s.accuracy===null? '<span style="color:var(--text2)">N/A</span>' : s.accuracy+'%'}</td>
+          </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <div class="row">
       <div class="card pad" style="flex:1;min-width:280px;">
         <h4 style="font-size:15px;margin-bottom:10px;color:var(--error);">🔻 Focus on these first</h4>
-        ${weakest.map(s=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13.5px;"><span>${esc(s.subject)}</span><b style="color:var(--error);">${s.accuracy}%</b></div>`).join('')}
+        ${weakest.map(s=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13.5px;"><span>${esc(s.subject)}</span><b style="color:var(--error);">${s.correct_pct}%</b></div>`).join('')}
       </div>
       <div class="card pad" style="flex:1;min-width:280px;">
         <h4 style="font-size:15px;margin-bottom:10px;color:var(--success);">💪 Your strongest subjects</h4>
-        ${strongest.map(s=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13.5px;"><span>${esc(s.subject)}</span><b style="color:var(--success);">${s.accuracy}%</b></div>`).join('')}
+        ${strongest.map(s=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13.5px;"><span>${esc(s.subject)}</span><b style="color:var(--success);">${s.correct_pct}%</b></div>`).join('')}
       </div>
     </div>
 
     <div class="welcome-band" style="margin-top:18px;">
       <h3 style="color:#fff;font-size:16px;">What should I do next?</h3>
-      <p>${weakest[0]? `Your weakest subject right now is <b>${esc(weakest[0].subject)}</b> at ${weakest[0].accuracy}% accuracy. Spend your next revision session focused there before your next test.` : 'Keep taking tests to build a clearer picture of your strengths and weak areas.'}</p>
+      <p>${weakest[0]? `Your weakest subject right now is <b>${esc(weakest[0].subject)}</b> at ${weakest[0].correct_pct}% correct overall. Spend your next revision session focused there before your next test.` : 'Keep taking tests to build a clearer picture of your strengths and weak areas.'}</p>
     </div>` : ''}
   `;
 }
@@ -2717,10 +2786,11 @@ window.startSection = async(sectionId)=>{
   S.pendingSection = null;
   S.navBusy = false;
   S.submittingSection = false;
+  S.paletteOpen = false;
   S.studentPage='exam';
   render();
 };
-window.viewMyResult = (attemptId)=>{ S.viewingResultAttemptId = attemptId; S.studentPage='result'; render(); };
+window.viewMyResult = (attemptId)=>{ S.viewingResultAttemptId = attemptId; S.aiChatHistory = []; S.studentPage='result'; render(); };
 
 // =========================================================================
 // EXAM ENGINE — one Section at a time, server-authoritative timer
@@ -2753,7 +2823,13 @@ async function renderExamEngine(app){
         <div class="qbox">
           <div class="qnum">Question ${sec.currentIndex+1}</div>
           <div class="qtext">${esc(q.text)}</div>
-          ${q.image_url? `<img class="qimg" src="${esc(q.image_url)}" onclick="openImageZoom('${esc(q.image_url)}')" loading="eager">`:''}
+          ${q.image_url? `<div class="qimg-wrap" style="position:relative;min-height:100px;margin-bottom:14px;">
+            <div class="qimg-loading" style="display:flex;align-items:center;gap:8px;color:var(--text2);font-size:13px;padding:18px 4px;"><span class="spinner"></span> Loading image…</div>
+            <img class="qimg" src="${esc(q.image_url)}" style="display:none;" data-retries="0"
+              onclick="openImageZoom(this.src)"
+              onload="this.style.display='block'; this.previousElementSibling.style.display='none';"
+              onerror="handleQuestionImageError(this)">
+          </div>`:''}
           <div id="optionsWrap">
             ${opts.map(k=>`
               <div class="option-btn ${resp.selected===k.toUpperCase()?'selected':''}" data-k="${k.toUpperCase()}">
@@ -2762,17 +2838,22 @@ async function renderExamEngine(app){
           </div>
         </div>
       </div>
+      <div class="palette-backdrop" id="paletteBackdrop"></div>
       <div class="palette-panel scrollbar-thin" id="palettePanel">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <h4 style="margin:0;">Question Palette</h4>
+          <button type="button" id="paletteCloseBtn" style="background:none;border:none;font-size:20px;line-height:1;cursor:pointer;color:var(--text2);padding:4px 8px;">✕</button>
+        </div>
         ${renderExamPaletteHTML(sec)}
       </div>
     </div>
     <div class="exam-toolbar">
-      <div style="display:flex;gap:8px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn btn-outline btn-sm" id="prevBtn" ${sec.currentIndex===0?'disabled':''}>Previous</button>
         <button class="btn btn-ghost btn-sm" id="clearBtn">Clear Response</button>
       </div>
-      <div style="display:flex;gap:8px;">
-        <button class="btn btn-accent btn-sm" id="markBtn">${resp.marked?'Unmark':'Mark for Review'}</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+        <button class="btn btn-accent btn-sm" id="markBtn">${resp.marked?'✓ Unmark':'🚩 Mark for Review'}</button>
         ${sec.currentIndex<sec.questions.length-1? `<button class="btn btn-primary" id="saveNextBtn">Save & Next</button>` : `<button class="btn btn-primary" id="saveNextBtn">Save</button>`}
         <button class="btn btn-navy" id="submitSectionBtn">Submit Section</button>
       </div>
@@ -2789,13 +2870,7 @@ async function renderExamEngine(app){
     const legendPanel = $('#palettePanel');
     if(legendPanel){
       legendPanel.innerHTML = renderExamPaletteHTML(sec);
-      $$('.pnode').forEach(n=>n.onclick=async()=>{
-        if(S.navBusy) return; S.navBusy=true;
-        await saveCurrentResponse(false);
-        sec.currentIndex=parseInt(n.dataset.idx); sec.questionShownAt=Date.now();
-        S.navBusy=false;
-        renderExamEngine(app);
-      });
+      wireQuestionNavNodes(app, sec);
     }
     await saveCurrentResponse(resp.selected===null);
   });
@@ -2828,19 +2903,21 @@ async function renderExamEngine(app){
       {title:'Submit Section?', okLabel:'Yes, Submit'}
     );
   };
-  $$('.pnode').forEach(n=>n.onclick=async()=>{
-    if(S.navBusy) return; S.navBusy=true;
-    await saveCurrentResponse(false);
-    sec.currentIndex=parseInt(n.dataset.idx); sec.questionShownAt=Date.now();
-    S.navBusy=false;
-    renderExamEngine(app);
-  });
+  wireQuestionNavNodes(app, sec);
   const fab = $('#fabPalette');
-  if(fab) fab.onclick=()=>{ S.paletteOpen=!S.paletteOpen; $('#palettePanel').classList.toggle('open', S.paletteOpen); };
+  function setPaletteOpen(open){
+    S.paletteOpen = open;
+    $('#palettePanel')?.classList.toggle('open', open);
+    $('#paletteBackdrop')?.classList.toggle('open', open);
+  }
+  if(fab) fab.onclick=()=>setPaletteOpen(!S.paletteOpen);
+  const paletteCloseBtn = $('#paletteCloseBtn'); if(paletteCloseBtn) paletteCloseBtn.onclick=()=>setPaletteOpen(false);
+  const paletteBackdrop = $('#paletteBackdrop'); if(paletteBackdrop) paletteBackdrop.onclick=()=>setPaletteOpen(false);
 
   startExamTicker(app);
   attachExamSecurity();
   requestFullscreenIfNeeded();
+  preloadNextQuestionImage(sec);
 }
 function setSaveStatus(mode, extra=''){
   const el = document.getElementById('saveStatus');
@@ -2938,19 +3015,35 @@ async function flushPendingSaves(){
   }
   return S.pendingSaves.size===0;
 }
+function wireQuestionNavNodes(app, sec){
+  const goTo = async(idx)=>{
+    if(S.navBusy) return; S.navBusy=true;
+    await saveCurrentResponse(false);
+    sec.currentIndex = idx; sec.questionShownAt = Date.now();
+    S.navBusy=false;
+    S.paletteOpen=false; // jumping to a question — whether from the grid or the marked-for-review list — should take the student straight there, not leave the palette covering the screen
+    renderExamEngine(app);
+  };
+  $$('.pnode').forEach(n=>n.onclick=()=>goTo(parseInt(n.dataset.idx)));
+  $$('.marked-jump-chip').forEach(n=>n.onclick=()=>goTo(parseInt(n.dataset.idx)));
+}
 function renderExamPaletteHTML(sec){
   const counts = {answered:0,notanswered:0,marked:0,notvisited:0};
+  const markedIdx = [];
   const nodes = sec.questions.map((q,i)=>{
     const r = sec.responses[q.question_id];
     let cls='notvisited';
-    if(r.marked) cls='marked';
+    if(r.marked){ cls='marked'; markedIdx.push(i); }
     else if(r.selected) cls='answered';
     else if(r.visited) cls='notanswered';
     counts[cls]++;
     return `<div class="pnode ${cls} ${i===sec.currentIndex?'current':''}" data-idx="${i}">${i+1}</div>`;
   }).join('');
   return `
-    <h4>Question Palette</h4>
+    ${markedIdx.length? `<div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:10px;margin-bottom:12px;">
+      <div style="font-size:11.5px;font-weight:700;color:#9A3412;text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px;">📌 Marked for Review (${markedIdx.length})</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">${markedIdx.map(i=>`<button type="button" class="marked-jump-chip" data-idx="${i}" style="width:28px;height:28px;border-radius:6px;border:1px solid var(--accent);background:#fff;color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;">${i+1}</button>`).join('')}</div>
+    </div>`:''}
     <div class="palette-grid">${nodes}</div>
     <div class="legend-row"><div class="legend-dot" style="background:var(--success)"></div> Answered (${counts.answered})</div>
     <div class="legend-row"><div class="legend-dot" style="background:var(--error-bg);border:1px solid #F9CAC4"></div> Not answered (${counts.notanswered})</div>
@@ -3008,6 +3101,36 @@ async function handleSectionSubmit(auto, reason='manual'){
     // always release the guard so the student is never stuck unable to
     // retry submitting after a transient failure.
     S.submittingSection = false;
+  }
+}
+window.handleQuestionImageError = (img)=>{
+  const wrap = img.closest('.qimg-wrap');
+  const loadingDiv = wrap?.querySelector('.qimg-loading');
+  const retries = parseInt(img.dataset.retries||'0');
+  const baseSrc = img.src.split('?')[0];
+  if(retries < 2){
+    img.dataset.retries = String(retries+1);
+    if(loadingDiv) loadingDiv.innerHTML = `<span class="spinner"></span> Loading image… (retrying)`;
+    setTimeout(()=>{ img.src = baseSrc + '?retry=' + Date.now(); }, 1200*(retries+1));
+  } else if(loadingDiv){
+    loadingDiv.innerHTML = `⚠️ Image could not be loaded. <button type="button" onclick="retryQuestionImage(this)" style="margin-left:6px;color:var(--blue);background:none;border:none;text-decoration:underline;cursor:pointer;font-size:13px;">Retry</button>`;
+  }
+};
+window.retryQuestionImage = (btn)=>{
+  const wrap = btn.closest('.qimg-wrap');
+  const img = wrap?.querySelector('img.qimg');
+  const loadingDiv = wrap?.querySelector('.qimg-loading');
+  if(!img) return;
+  img.dataset.retries = '0';
+  img.style.display = 'none';
+  if(loadingDiv) loadingDiv.innerHTML = `<span class="spinner"></span> Loading image…`;
+  img.src = img.src.split('?')[0] + '?retry=' + Date.now();
+};
+function preloadNextQuestionImage(sec){
+  const next = sec.questions[sec.currentIndex+1];
+  if(next && next.image_url){
+    const img = new Image();
+    img.src = next.image_url; // just warms the browser cache; nothing rendered
   }
 }
 window.openImageZoom = (src)=>{
@@ -3120,17 +3243,31 @@ async function studentResult(root){
 
   const subjAgg = {};
   (data.detail||[]).forEach(d=>{
-    if(!subjAgg[d.subject]) subjAgg[d.subject] = {correct:0,total:0};
+    if(!subjAgg[d.subject]) subjAgg[d.subject] = {correct:0,wrong:0,total:0};
     subjAgg[d.subject].total++;
-    if(d.correct && d.selected===d.correct) subjAgg[d.subject].correct++;
+    if(d.is_correct === true) subjAgg[d.subject].correct++;
+    else if(d.is_correct === false) subjAgg[d.subject].wrong++;
+    // if is_correct is null, the question was never attempted (DNP) —
+    // it still counts toward `total` above, just not correct/wrong.
   });
-  const subjRows = Object.entries(subjAgg).map(([s,v])=>({subject:s, pct: v.total? Math.round(v.correct/v.total*100):0, total:v.total}));
-  subjRows.sort((a,b)=>a.pct-b.pct);
-  const weakest = subjRows.slice(0,2).filter(s=>s.pct<70);
+  const subjRows = Object.entries(subjAgg).map(([s,v])=>{
+    const dnp = v.total - v.correct - v.wrong;
+    const attempted = v.correct + v.wrong;
+    return {
+      subject:s, total:v.total, correct:v.correct, wrong:v.wrong, dnp,
+      correctPct: v.total? Math.round(v.correct/v.total*100):0,
+      wrongPct: v.total? Math.round(v.wrong/v.total*100):0,
+      dnpPct: v.total? Math.round(dnp/v.total*100):0,
+      attempted,
+      accuracy: attempted>0? Math.round(v.correct/attempted*100) : null,
+    };
+  });
+  subjRows.sort((a,b)=>a.correctPct-b.correctPct);
+  const weakest = subjRows.slice(0,2).filter(s=>s.correctPct<70);
 
   const timedQs = (data.detail||[]).filter(d=>d.time_spent_sec>0);
   const avgTime = timedQs.length? Math.round(timedQs.reduce((a,d)=>a+d.time_spent_sec,0)/timedQs.length) : 0;
-  const slowWrong = timedQs.filter(d=>d.time_spent_sec>90 && d.correct && d.selected!==d.correct).length;
+  const slowWrong = timedQs.filter(d=>d.time_spent_sec>90 && d.is_correct===false).length;
 
   root.innerHTML = `
     <div style="text-align:center;margin-bottom:22px;"><span class="badge badge-success" style="font-size:12px;padding:6px 14px;">EXAM COMPLETED</span></div>
@@ -3147,26 +3284,110 @@ async function studentResult(root){
       <div class="stat-card" style="text-align:center;"><div class="lbl">Incorrect</div><div class="val" style="color:var(--error)">${data.incorrect}</div></div>
       <div class="stat-card" style="text-align:center;"><div class="lbl">Unattempted</div><div class="val" style="color:var(--text2)">${data.unattempted}</div></div>
     </div>
-    ${subjRows.length? `<div class="card pad" style="margin-top:20px;">
-      <h4 style="font-size:15px;margin-bottom:14px;">Subject performance</h4>
-      ${subjRows.map(v=>`<div class="mini-bar"><div class="lbl">${esc(v.subject)}</div><div class="track"><div class="fill" style="width:${v.pct}%;background:${v.pct>=70?'#12B76A':v.pct>=50?'#FFB000':'#F04438'}"></div></div><div class="pct">${v.pct}%</div></div>`).join('')}
+    ${subjRows.length? `<div class="card pad" style="margin-top:20px;overflow-x:auto;">
+      <h4 style="font-size:15px;margin-bottom:4px;">Subject-wise performance</h4>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:14px;"><b>Correct %</b> is out of all questions in that subject on this test. <b>Accuracy</b> is only out of the questions you actually attempted — the two are different on purpose.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Subject</th><th>Total</th><th>Correct</th><th>Wrong</th><th>DNP</th><th>Correct %</th><th>Wrong %</th><th>DNP %</th><th>Attempted</th><th>Accuracy</th></tr></thead>
+        <tbody>
+        ${subjRows.map(v=>`<tr>
+          <td><b>${esc(v.subject)}</b></td>
+          <td>${v.total}</td>
+          <td style="color:var(--success)">${v.correct}</td>
+          <td style="color:var(--error)">${v.wrong}</td>
+          <td style="color:var(--text2)">${v.dnp}</td>
+          <td><b style="color:${v.correctPct>=70?'#12B76A':v.correctPct>=50?'#B45309':'#F04438'}">${v.correctPct}%</b></td>
+          <td>${v.wrongPct}%</td>
+          <td>${v.dnpPct}%</td>
+          <td>${v.attempted}</td>
+          <td>${v.accuracy===null? '<span style="color:var(--text2)">N/A</span>' : v.accuracy+'%'}</td>
+        </tr>`).join('')}
+        </tbody>
+      </table></div>
     </div>`:''}
     <div class="welcome-band" style="margin-top:20px;">
       <h3 style="color:#fff;font-size:16px;">What went wrong, and what to do next</h3>
       ${data.unattempted>0? `<p>You left <b>${data.unattempted} question(s)</b> unattempted — even an educated guess is usually better than leaving a question blank (check your test's negative marking before assuming this always applies).</p>`:''}
-      ${weakest.length? `<p>Your weakest area${weakest.length>1?'s were':' was'} <b>${weakest.map(w=>`${esc(w.subject)} (${w.pct}%)`).join(' and ')}</b> in this test. Prioritize revising ${weakest.length>1?'these subjects':'this subject'} before your next attempt.</p>` : `<p>Your subject-wise performance was fairly even this time — good consistency. Keep practicing to push every subject higher.</p>`}
+      ${weakest.length? `<p>Your weakest area${weakest.length>1?'s were':' was'} <b>${weakest.map(w=>`${esc(w.subject)} (${w.correctPct}%)`).join(' and ')}</b> in this test. Prioritize revising ${weakest.length>1?'these subjects':'this subject'} before your next attempt.</p>` : `<p>Your subject-wise performance was fairly even this time — good consistency. Keep practicing to push every subject higher.</p>`}
       ${slowWrong>0? `<p>You spent over 90 seconds on <b>${slowWrong} question(s)</b> and still got them wrong — in a timed exam, it's often better to mark these for review and move on rather than getting stuck.</p>`:''}
       <p>📊 Check <button class="btn btn-outline btn-sm" style="background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.3);" onclick="S.studentPage='analytics';render();">My Analytics</button> to see how this compares with your overall trend across all tests.</p>
+    </div>
+    <div class="card pad" style="margin-top:20px;">
+      <h4 style="font-size:15px;margin-bottom:10px;">🤖 Ask AI — Your Personal Guidance</h4>
+      <div id="aiGuidanceBox">
+        <button class="btn btn-primary btn-sm" id="getAiGuidanceBtn">Get My Personalized Guidance</button>
+      </div>
+      <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px;">
+        <div style="font-size:13px;color:var(--text2);margin-bottom:8px;">Have a doubt about this test or your preparation? Ask here:</div>
+        <div id="aiChatLog" style="margin-bottom:10px;"></div>
+        <div style="display:flex;gap:8px;">
+          <input id="aiDoubtInput" placeholder="Type your doubt or question…" style="flex:1;">
+          <button class="btn btn-primary btn-sm" id="aiDoubtSendBtn">Ask</button>
+        </div>
+      </div>
     </div>
     ${data.allowReview && data.detail? `<div style="margin-top:20px;text-align:center;"><button class="btn btn-navy" id="reviewBtn">Review Question-wise Result</button></div>`:''}
     <div style="margin-top:16px;text-align:center;"><button class="btn btn-ghost btn-sm" id="backToDashBtn">← Back to Dashboard</button></div>
   `;
   const reviewBtn = $('#reviewBtn');
-  if(reviewBtn) reviewBtn.onclick=()=>{ S.reviewDetail = data.detail; S.reviewTestName = data.test_name||''; S.studentPage='review'; render(); };
+  if(reviewBtn) reviewBtn.onclick=()=>{ S.reviewDetail = data.detail; S.reviewTestName = data.test_name||''; S.reviewFilter='all'; S.studentPage='review'; render(); };
   $('#backToDashBtn').onclick=()=>{ S.studentPage='dashboard'; render(); };
+
+  $('#getAiGuidanceBtn').onclick=async()=>{
+    const box = $('#aiGuidanceBox');
+    box.innerHTML = `<div style="font-size:13.5px;color:var(--text2);"><span class="spinner"></span> Thinking about your performance…</div>`;
+    const contextStr = `Score: ${data.score}/${totalQ}, Accuracy: ${data.accuracy}%, Correct: ${data.correct}, Incorrect: ${data.incorrect}, Unattempted: ${data.unattempted}.\nSubject-wise: ${subjRows.map(s=>`${s.subject}: ${s.correct}/${s.total} correct (${s.correctPct}%)`).join('; ')}.`;
+    try{
+      const res = await fetch('/.netlify/functions/ask-ai', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({mode:'guidance', context: contextStr}),
+      });
+      const j = await res.json();
+      if(!res.ok) throw new Error(j.error||'Could not get guidance');
+      box.innerHTML = `<div style="font-size:13.5px;line-height:1.6;white-space:pre-line;">${esc(j.text)}</div>`;
+    }catch(e){
+      box.innerHTML = `<div style="font-size:13px;color:var(--error);">Could not load AI guidance: ${esc(e.message)}. <button class="btn btn-ghost btn-sm" id="getAiGuidanceBtn2">Retry</button></div>`;
+      const retryBtn = $('#getAiGuidanceBtn2'); if(retryBtn) retryBtn.onclick=()=>$('#getAiGuidanceBtn')?.click();
+    }
+  };
+
+  if(!S.aiChatHistory) S.aiChatHistory = [];
+  function renderAiChatLog(){
+    $('#aiChatLog').innerHTML = S.aiChatHistory.map(m=>`
+      <div style="margin-bottom:8px;${m.role==='user'?'text-align:right;':''}">
+        <span style="display:inline-block;max-width:85%;padding:8px 12px;border-radius:10px;font-size:13px;white-space:pre-line;text-align:left;background:${m.role==='user'?'var(--blue)':'#F2F4F7'};color:${m.role==='user'?'#fff':'var(--text)'};">${esc(m.content)}</span>
+      </div>`).join('');
+  }
+  renderAiChatLog();
+  const sendDoubt = async()=>{
+    const input = $('#aiDoubtInput');
+    const q = input.value.trim();
+    if(!q) return;
+    input.value=''; input.disabled=true; $('#aiDoubtSendBtn').disabled=true;
+    S.aiChatHistory.push({role:'user', content:q});
+    renderAiChatLog();
+    try{
+      const res = await fetch('/.netlify/functions/ask-ai', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({mode:'doubt', question:q, history: S.aiChatHistory.slice(0,-1)}),
+      });
+      const j = await res.json();
+      if(!res.ok) throw new Error(j.error||'Could not get an answer');
+      S.aiChatHistory.push({role:'assistant', content:j.text});
+    }catch(e){
+      S.aiChatHistory.push({role:'assistant', content:'Sorry, I could not answer that right now — please try again in a moment.'});
+    }
+    renderAiChatLog();
+    input.disabled=false; $('#aiDoubtSendBtn').disabled=false; input.focus();
+  };
+  $('#aiDoubtSendBtn').onclick=sendDoubt;
+  $('#aiDoubtInput').onkeydown=(e)=>{ if(e.key==='Enter') sendDoubt(); };
 }
 async function studentReview(root){
   const detail = S.reviewDetail || [];
+  const markedQs = detail.map((d,i)=>({d,i})).filter(x=>x.d.is_marked);
+  if(!S.reviewFilter) S.reviewFilter = 'all';
+  const showList = S.reviewFilter==='marked' ? markedQs.map(x=>x) : detail.map((d,i)=>({d,i}));
   root.innerHTML = `
     <div class="no-print" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
       <button class="btn btn-ghost btn-sm" onclick="S.studentPage='result';render();">← Back to Result</button>
@@ -3178,12 +3399,23 @@ async function studentReview(root){
       <hr>
     </div>
     <h3 style="font-size:17px;margin-bottom:14px;">Question-wise review</h3>
-    ${detail.map((d,i)=>{
-      const result = !d.correct? 'unattempted-hidden' : (!d.selected? 'unattempted' : d.selected===d.correct? 'correct':'incorrect');
+    ${markedQs.length? `<div class="no-print" style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:10px 14px;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+        <div style="font-size:12px;font-weight:700;color:#9A3412;text-transform:uppercase;letter-spacing:.3px;">🚩 You marked ${markedQs.length} question(s) for review during the exam</div>
+        <button type="button" id="reviewFilterToggle" class="btn btn-sm" style="background:${S.reviewFilter==='marked'?'var(--accent)':'#fff'};color:${S.reviewFilter==='marked'?'#fff':'var(--accent)'};border:1px solid var(--accent);">
+          ${S.reviewFilter==='marked' ? '📋 Show All Questions' : '👁 View Only Marked Questions'}
+        </button>
+      </div>
+      ${S.reviewFilter!=='marked'? `<div style="display:flex;flex-wrap:wrap;gap:6px;">${markedQs.map(x=>`<button type="button" class="jump-to-marked-chip" data-idx="${x.i}" style="width:30px;height:30px;border-radius:6px;border:1px solid var(--accent);background:#fff;color:var(--accent);font-size:12.5px;font-weight:700;cursor:pointer;">${x.i+1}</button>`).join('')}</div>`:''}
+    </div>`:''}
+    ${S.reviewFilter==='marked' && !showList.length? `<div class="empty-state">No questions were marked for review in this attempt.</div>`:''}
+    ${showList.map(({d,i})=>{
+      const result = d.is_correct === true ? 'correct' : d.is_correct === false ? 'incorrect' : 'unattempted';
       const icon = result==='correct'?'✅':result==='incorrect'?'❌':'—';
-      return `<div class="qcard">
+      return `<div class="qcard" id="revq-${i}">
         <div class="qmeta"><span class="badge badge-grey">Q${i+1}</span><span class="badge badge-blue">${esc(d.subject)}</span>
-          ${d.correct? `<span class="badge ${result==='correct'?'badge-success':result==='incorrect'?'badge-error':'badge-grey'}">${icon} ${result}</span>`:''}</div>
+          <span class="badge ${result==='correct'?'badge-success':result==='incorrect'?'badge-error':'badge-grey'}">${icon} ${result}</span>
+          ${d.is_marked? `<span class="badge badge-warning">🚩 Marked for Review</span>`:''}</div>
         <p style="font-size:14px;margin-bottom:10px;">${esc(d.text)}</p>
         ${d.image_url?`<img class="qimg" src="${esc(d.image_url)}" style="max-width:280px;">`:''}
         ${['a','b','c','d'].filter(k=>d['option_'+k]).map(k=>{
@@ -3198,6 +3430,11 @@ async function studentReview(root){
       </div>`;
     }).join('')}
   `;
+  const filterToggle = $('#reviewFilterToggle');
+  if(filterToggle) filterToggle.onclick=()=>{ S.reviewFilter = S.reviewFilter==='marked'? 'all':'marked'; renderStudentPage(root); };
+  $$('.jump-to-marked-chip').forEach(btn=>btn.onclick=()=>{
+    document.getElementById('revq-'+btn.dataset.idx)?.scrollIntoView({behavior:'smooth',block:'center'});
+  });
 }
 
 
