@@ -607,7 +607,7 @@ async function boot(){
       if(!error && data){
         S.role = 'student';
         S.studentToken = info.token;
-        S.currentUser = { id: info.id, studentId: info.studentId, name: info.name, status:'Active' };
+        S.currentUser = { id: info.id, studentId: info.studentId, name: info.name, status:'Active', examTarget: info.examTarget||'FMGE' };
         S.view = 'student'; S.studentPage = 'dashboard';
       } else if(error && /session expired|attempt not found|invalid/i.test(error.message||'')){
         // This is a genuine "the token itself is no longer valid" signal
@@ -676,8 +676,8 @@ async function doLogin(role, username, password){
     if(error || !row){ toast('Invalid Student ID or password','err'); return false; }
     S.role = 'student';
     S.studentToken = row.token;
-    S.currentUser = { id: row.id, studentId: row.student_id, name: row.name, status:'Active' };
-    localStorage.setItem('fmge_student_session', JSON.stringify({ token: row.token, id: row.id, studentId: row.student_id, name: row.name }));
+    S.currentUser = { id: row.id, studentId: row.student_id, name: row.name, status:'Active', examTarget: row.exam_target||'FMGE' };
+    localStorage.setItem('fmge_student_session', JSON.stringify({ token: row.token, id: row.id, studentId: row.student_id, name: row.name, examTarget: row.exam_target||'FMGE' }));
     S.view='student'; S.studentPage='dashboard';
     render();
     return true;
@@ -1754,7 +1754,7 @@ window.continueTestWizard = async(testId)=>{
     disableCopyPaste: settings?.disable_copy_paste ?? true,
     resultsVisible: settings?.results_visible ?? true, rankingEnabled: settings?.ranking_enabled ?? true,
     showCorrectAnswers: settings?.show_correct_answers ?? true, showExplanations: settings?.show_explanations ?? true,
-    allowReview: settings?.allow_review ?? true,
+    allowReview: settings?.allow_review ?? true, aiMentorEnabled: settings?.ai_mentor_enabled ?? true,
     parts: (data.parts||[]).map(p=>({
       id:p.id, partNumber:p.part_number, name:p.name, questionCount:p.question_count,
       selectedIds:new Set(),
@@ -1787,7 +1787,7 @@ function startTestWizard(){
     startDate:'', startTime:'09:00', endDate:'', endTime:'18:00', maxAttempts:1,
     marksPerQuestion:1, negativeMarking:0.25,
     tabSwitchLimit:3, fullscreenRequired:true, disableCopyPaste:true,
-    resultsVisible:true, rankingEnabled:true, showCorrectAnswers:true, showExplanations:true, allowReview:true,
+    resultsVisible:true, rankingEnabled:true, showCorrectAnswers:true, showExplanations:true, allowReview:true, aiMentorEnabled:true,
     parts:[],
   };
   openWizardModal();
@@ -1839,6 +1839,7 @@ async function handleWizardNext(){
         p_tab_switch_limit: w.tabSwitchLimit, p_fullscreen_required: w.fullscreenRequired, p_disable_copy_paste: w.disableCopyPaste,
         p_results_visible: w.resultsVisible, p_ranking_enabled: w.rankingEnabled,
         p_show_correct_answers: w.showCorrectAnswers, p_show_explanations: w.showExplanations, p_allow_review: w.allowReview,
+        p_ai_mentor_enabled: w.aiMentorEnabled,
       });
       if(error){ toast('Could not save settings: '+error.message,'err'); return; }
       await logAudit('Update Test Settings', w.name);
@@ -1911,6 +1912,8 @@ function renderWizardStep(){
         <div class="field" style="flex:1;">${toggleHTML2('w_expl', w.showExplanations, 'Show explanations after submit')}</div>
       </div>
       <div class="field" style="max-width:260px;">${toggleHTML2('w_review', w.allowReview, 'Allow question review')}</div>
+      <h4 style="font-size:14px;margin:18px 0 8px;">AI Mentor</h4>
+      <div class="field" style="max-width:340px;">${toggleHTML2('w_aimentor', w.aiMentorEnabled, '🤖 Enable MedMind (AI mentor) on this test\'s result page')}</div>
       ${w.testId? `<p class="kbd-note">Exam Type is locked once a Draft is created — everything else here can still be changed anytime, even after the test goes live.</p>`:''}
     `;
     $('#w_exam').onchange=e=>w.examCode=e.target.value;
@@ -1932,6 +1935,7 @@ function renderWizardStep(){
     bindToggle2('w_correct',w,'showCorrectAnswers');
     bindToggle2('w_expl',w,'showExplanations');
     bindToggle2('w_review',w,'allowReview');
+    bindToggle2('w_aimentor',w,'aiMentorEnabled');
   }
   else if(w.step===2){
     body.innerHTML = `
@@ -3027,6 +3031,21 @@ function wireQuestionNavNodes(app, sec){
   $$('.pnode').forEach(n=>n.onclick=()=>goTo(parseInt(n.dataset.idx)));
   $$('.marked-jump-chip').forEach(n=>n.onclick=()=>goTo(parseInt(n.dataset.idx)));
 }
+function medmindAvatar(size=40){
+  return `<svg width="${size}" height="${size}" viewBox="0 0 48 48" style="flex-shrink:0;">
+    <defs><linearGradient id="mmGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#C084FC"/><stop offset="100%" stop-color="#F472B6"/>
+    </linearGradient></defs>
+    <circle cx="24" cy="24" r="24" fill="url(#mmGrad)"/>
+    <path d="M12 20 a12 12 0 0 1 24 0" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <circle cx="12" cy="21" r="2.6" fill="#fff"/>
+    <circle cx="36" cy="21" r="2.6" fill="#fff"/>
+    <rect x="17" y="20" width="14" height="14" rx="7" fill="#fff"/>
+    <circle cx="21.5" cy="27" r="1.6" fill="#8B2FC9"/>
+    <circle cx="26.5" cy="27" r="1.6" fill="#8B2FC9"/>
+    <path d="M21 30.5 q3 2.4 6 0" stroke="#8B2FC9" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+  </svg>`;
+}
 function renderExamPaletteHTML(sec){
   const counts = {answered:0,notanswered:0,marked:0,notvisited:0};
   const markedIdx = [];
@@ -3312,20 +3331,26 @@ async function studentResult(root){
       ${slowWrong>0? `<p>You spent over 90 seconds on <b>${slowWrong} question(s)</b> and still got them wrong — in a timed exam, it's often better to mark these for review and move on rather than getting stuck.</p>`:''}
       <p>📊 Check <button class="btn btn-outline btn-sm" style="background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.3);" onclick="S.studentPage='analytics';render();">My Analytics</button> to see how this compares with your overall trend across all tests.</p>
     </div>
-    <div class="card pad" style="margin-top:20px;">
-      <h4 style="font-size:15px;margin-bottom:10px;">🤖 Ask AI — Your Personal Guidance</h4>
-      <div id="aiGuidanceBox">
+    ${data.aiMentorEnabled!==false? `<div class="card pad" style="margin-top:20px;background:linear-gradient(180deg,#FDF4FF 0%,#ffffff 90px);border:1px solid #F3E8FF;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+        ${medmindAvatar(44)}
+        <div>
+          <h4 style="font-size:15.5px;margin:0;">MedMind</h4>
+          <p style="font-size:11.5px;color:var(--text2);margin:0;">Your AI study buddy</p>
+        </div>
+      </div>
+      <div id="aiGuidanceBox" style="margin-top:10px;">
         <button class="btn btn-primary btn-sm" id="getAiGuidanceBtn">Get My Personalized Guidance</button>
       </div>
       <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px;">
-        <div style="font-size:13px;color:var(--text2);margin-bottom:8px;">Have a doubt about this test or your preparation? Ask here:</div>
-        <div id="aiChatLog" style="margin-bottom:10px;"></div>
+        <div style="font-size:13px;color:var(--text2);margin-bottom:8px;">Have a doubt about this test or your preparation? Ask MedMind:</div>
+        <div id="aiChatLog" style="margin-bottom:10px;max-height:340px;overflow-y:auto;"></div>
         <div style="display:flex;gap:8px;">
           <input id="aiDoubtInput" placeholder="Type your doubt or question…" style="flex:1;">
           <button class="btn btn-primary btn-sm" id="aiDoubtSendBtn">Ask</button>
         </div>
       </div>
-    </div>
+    </div>`:''}
     ${data.allowReview && data.detail? `<div style="margin-top:20px;text-align:center;"><button class="btn btn-navy" id="reviewBtn">Review Question-wise Result</button></div>`:''}
     <div style="margin-top:16px;text-align:center;"><button class="btn btn-ghost btn-sm" id="backToDashBtn">← Back to Dashboard</button></div>
   `;
@@ -3333,18 +3358,22 @@ async function studentResult(root){
   if(reviewBtn) reviewBtn.onclick=()=>{ S.reviewDetail = data.detail; S.reviewTestName = data.test_name||''; S.reviewFilter='all'; S.studentPage='review'; render(); };
   $('#backToDashBtn').onclick=()=>{ S.studentPage='dashboard'; render(); };
 
+  if(data.aiMentorEnabled!==false){
   $('#getAiGuidanceBtn').onclick=async()=>{
     const box = $('#aiGuidanceBox');
-    box.innerHTML = `<div style="font-size:13.5px;color:var(--text2);"><span class="spinner"></span> Thinking about your performance…</div>`;
+    box.innerHTML = `<div style="display:flex;gap:8px;align-items:flex-start;">${medmindAvatar(28)}<div style="font-size:13.5px;color:var(--text2);padding-top:4px;"><span class="spinner"></span> MedMind is thinking about your performance…</div></div>`;
     const contextStr = `Score: ${data.score}/${totalQ}, Accuracy: ${data.accuracy}%, Correct: ${data.correct}, Incorrect: ${data.incorrect}, Unattempted: ${data.unattempted}.\nSubject-wise: ${subjRows.map(s=>`${s.subject}: ${s.correct}/${s.total} correct (${s.correctPct}%)`).join('; ')}.`;
     try{
       const res = await fetch('/.netlify/functions/ask-ai', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({mode:'guidance', context: contextStr}),
+        body: JSON.stringify({mode:'guidance', context: contextStr, examTarget: S.currentUser?.examTarget||'FMGE'}),
       });
       const j = await res.json();
       if(!res.ok) throw new Error(j.error||'Could not get guidance');
-      box.innerHTML = `<div style="font-size:13.5px;line-height:1.6;white-space:pre-line;">${esc(j.text)}</div>`;
+      box.innerHTML = `<div style="display:flex;gap:8px;align-items:flex-start;">${medmindAvatar(32)}<div>
+        <div style="font-size:13.5px;line-height:1.6;white-space:pre-line;background:linear-gradient(135deg,#C084FC,#F472B6);color:#fff;border-radius:14px;border-bottom-left-radius:4px;padding:12px 14px;">${esc(j.text)}</div>
+        <span style="display:inline-block;margin-top:6px;font-size:10.5px;font-weight:700;color:#A855F7;background:#FAF5FF;padding:3px 9px;border-radius:100px;">✨ Answered by MedMind</span>
+      </div></div>`;
     }catch(e){
       box.innerHTML = `<div style="font-size:13px;color:var(--error);">Could not load AI guidance: ${esc(e.message)}. <button class="btn btn-ghost btn-sm" id="getAiGuidanceBtn2">Retry</button></div>`;
       const retryBtn = $('#getAiGuidanceBtn2'); if(retryBtn) retryBtn.onclick=()=>$('#getAiGuidanceBtn')?.click();
@@ -3353,10 +3382,21 @@ async function studentResult(root){
 
   if(!S.aiChatHistory) S.aiChatHistory = [];
   function renderAiChatLog(){
-    $('#aiChatLog').innerHTML = S.aiChatHistory.map(m=>`
-      <div style="margin-bottom:8px;${m.role==='user'?'text-align:right;':''}">
-        <span style="display:inline-block;max-width:85%;padding:8px 12px;border-radius:10px;font-size:13px;white-space:pre-line;text-align:left;background:${m.role==='user'?'var(--blue)':'#F2F4F7'};color:${m.role==='user'?'#fff':'var(--text)'};">${esc(m.content)}</span>
-      </div>`).join('');
+    $('#aiChatLog').innerHTML = S.aiChatHistory.map(m=>{
+      if(m.role==='assistant'){
+        return `<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:14px;">
+          ${medmindAvatar(30)}
+          <div>
+            <span style="display:inline-block;max-width:78%;padding:10px 14px;border-radius:14px;border-bottom-left-radius:4px;font-size:13px;white-space:pre-line;background:linear-gradient(135deg,#C084FC,#F472B6);color:#fff;">${esc(m.content)}</span>
+            <div><span style="display:inline-block;margin-top:5px;font-size:10px;font-weight:700;color:#A855F7;background:#FAF5FF;padding:2px 8px;border-radius:100px;">✨ Answered by MedMind</span></div>
+          </div>
+        </div>`;
+      }
+      return `<div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+        <span style="display:inline-block;max-width:78%;padding:10px 14px;border-radius:14px;border-bottom-right-radius:4px;font-size:13px;white-space:pre-line;background:#fff;border:1px solid var(--border);box-shadow:0 1px 2px rgba(16,24,40,.05);color:var(--text);">${esc(m.content)}</span>
+      </div>`;
+    }).join('');
+    const log = $('#aiChatLog'); if(log) log.scrollTop = log.scrollHeight;
   }
   renderAiChatLog();
   const sendDoubt = async()=>{
@@ -3369,7 +3409,7 @@ async function studentResult(root){
     try{
       const res = await fetch('/.netlify/functions/ask-ai', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({mode:'doubt', question:q, history: S.aiChatHistory.slice(0,-1)}),
+        body: JSON.stringify({mode:'doubt', question:q, history: S.aiChatHistory.slice(0,-1), examTarget: S.currentUser?.examTarget||'FMGE'}),
       });
       const j = await res.json();
       if(!res.ok) throw new Error(j.error||'Could not get an answer');
@@ -3382,6 +3422,7 @@ async function studentResult(root){
   };
   $('#aiDoubtSendBtn').onclick=sendDoubt;
   $('#aiDoubtInput').onkeydown=(e)=>{ if(e.key==='Enter') sendDoubt(); };
+  }
 }
 async function studentReview(root){
   const detail = S.reviewDetail || [];
