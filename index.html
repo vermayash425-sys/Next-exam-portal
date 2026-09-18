@@ -3258,7 +3258,7 @@ function renderStudentShell(app){
 }
 async function renderStudentPage(root){
   const page = S.studentPage||'dashboard';
-  if(page!=='analytics') unmountMedMindFab();
+  if(page!=='analytics' && page!=='dashboard') unmountMedMindFab();
   if(page==='dashboard') return studentDashboard(root);
   if(page==='instructions') return studentInstructionsPage(root);
   if(page==='result') return studentResult(root);
@@ -3452,6 +3452,7 @@ async function studentDashboard(root){
     root.innerHTML = `<div class="empty-state">Could not load dashboard: ${esc(error.message)}<br><button class="btn btn-outline btn-sm" style="margin-top:10px;" onclick="doLogout()">Log in again</button></div>`;
     return;
   }
+  mountMedMindFab();
   const tests = (data.tests||[]);
   const firstName = esc(S.currentUser.name.split(' ')[0]);
   const testsCompleted = tests.filter(t=>t.attempt_status==='submitted').length;
