@@ -8,31 +8,68 @@
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --navy:#0B1F3A;
+  --navy:#0A1628;
+  --navy-2:#0F2340;
   --blue:#155EEF;
   --blue-bright:#2563EB;
-  --accent:#FFB000;
-  --bg:#F7F9FC;
+  --accent:#F5A623;
+  --coral:#EF4B5F;
+  --bg:#F6F7FB;
   --card:#FFFFFF;
-  --text:#101828;
-  --text2:#667085;
+  --surface-2:#F0F2F7;
+  --text:#0F1729;
+  --text2:#64748B;
+  --text3:#94A3B8;
   --success:#12B76A;
   --success-bg:#ECFDF3;
   --error:#F04438;
   --error-bg:#FEF3F2;
   --warning:#F79009;
   --warning-bg:#FFFAEB;
-  --border:#E4E7EC;
-  --radius:14px;
-  --shadow:0 1px 2px rgba(16,24,40,.05), 0 1px 3px rgba(16,24,40,.06);
-  --shadow-lg:0 8px 24px rgba(11,31,58,.10);
+  --border:#E5E8F0;
+  --radius:16px;
+  --radius-sm:10px;
+  --shadow:0 1px 2px rgba(16,24,40,.04), 0 2px 6px rgba(16,24,40,.05);
+  --shadow-lg:0 12px 32px rgba(10,22,40,.12);
+  --ease:cubic-bezier(.4,0,.2,1);
 }
+html[data-theme="dark"]{
+  --navy:#0A1628;
+  --navy-2:#122544;
+  --blue:#3B82F6;
+  --blue-bright:#60A5FA;
+  --accent:#F5A623;
+  --coral:#F26B7D;
+  --bg:#0B111F;
+  --card:#131B2E;
+  --surface-2:#1B2438;
+  --text:#EDF1F9;
+  --text2:#93A1C0;
+  --text3:#647092;
+  --success:#3ECF8E;
+  --success-bg:rgba(62,207,142,.12);
+  --error:#F87171;
+  --error-bg:rgba(248,113,113,.12);
+  --warning:#FBBF24;
+  --warning-bg:rgba(251,191,36,.12);
+  --border:#242E48;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 2px 8px rgba(0,0,0,.24);
+  --shadow-lg:0 16px 40px rgba(0,0,0,.45);
+}
+html[data-theme="dark"] .btn-outline{background:var(--card);color:var(--text);}
+html[data-theme="dark"] .role-tab.active{background:var(--surface-2);}
+html[data-theme="dark"] .demo-hint{background:rgba(59,130,246,.12);border-color:rgba(59,130,246,.25);}
+html[data-theme="dark"] .part-row{background:var(--surface-2);}
+html[data-theme="dark"] .medmind-panel-log{background:#0F1626;}
+html[data-theme="dark"] .medmind-panel-footer{background:var(--card);}
+html[data-theme="dark"] input,html[data-theme="dark"] select,html[data-theme="dark"] textarea{background:var(--card);color:var(--text);border-color:var(--border);}
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;height:100%;}
 body{
   font-family:'Inter',system-ui,sans-serif;
   background:var(--bg);
   color:var(--text);
+  transition:background .25s var(--ease), color .25s var(--ease);
   -webkit-tap-highlight-color:transparent;
   overscroll-behavior:none;
 }
@@ -45,28 +82,29 @@ a{color:var(--blue);text-decoration:none;}
 
 .btn{
   display:inline-flex;align-items:center;justify-content:center;gap:8px;
-  border-radius:10px;border:none;font-weight:700;font-size:14px;
-  padding:11px 20px;transition:transform .08s ease, box-shadow .15s ease, background .15s ease;
-  white-space:nowrap;
+  border-radius:var(--radius-sm);border:none;font-weight:700;font-size:14px;
+  padding:11px 20px;transition:transform .12s var(--ease), box-shadow .15s var(--ease), background .15s var(--ease), opacity .15s var(--ease);
+  white-space:nowrap;cursor:pointer;
 }
 .btn:active{transform:scale(.97);}
-.btn-primary{background:var(--blue);color:#fff;box-shadow:0 1px 2px rgba(21,94,239,.3);}
-.btn-primary:hover{background:var(--blue-bright);}
+.btn:disabled{opacity:.6;cursor:not-allowed;}
+.btn-primary{background:var(--blue);color:#fff;box-shadow:0 1px 2px rgba(21,94,239,.25), 0 1px 1px rgba(21,94,239,.15);}
+.btn-primary:hover{background:var(--blue-bright);box-shadow:0 4px 12px rgba(21,94,239,.28);transform:translateY(-1px);}
 .btn-navy{background:var(--navy);color:#fff;}
-.btn-navy:hover{background:#132a4d;}
+.btn-navy:hover{background:var(--navy-2);transform:translateY(-1px);}
 .btn-accent{background:var(--accent);color:#3A2400;}
-.btn-accent:hover{filter:brightness(1.05);}
-.btn-outline{background:#fff;color:var(--navy);border:1.5px solid var(--border);}
+.btn-accent:hover{filter:brightness(1.05);transform:translateY(-1px);}
+.btn-outline{background:var(--card);color:var(--navy);border:1.5px solid var(--border);}
 .btn-outline:hover{border-color:var(--blue);color:var(--blue);}
 .btn-danger{background:var(--error-bg);color:var(--error);}
 .btn-danger:hover{background:#ffe1de;}
 .btn-ghost{background:transparent;color:var(--text2);}
-.btn-ghost:hover{background:#EEF2F6;}
+.btn-ghost:hover{background:var(--surface-2);}
 .btn-sm{padding:7px 12px;font-size:12.5px;border-radius:8px;}
 .btn-block{width:100%;}
 .btn:disabled{opacity:.5;cursor:not-allowed;}
 
-.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);transition:box-shadow .2s var(--ease), transform .2s var(--ease);}
 .pad{padding:22px;}
 .badge{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:100px;letter-spacing:.2px;}
 .badge-success{background:var(--success-bg);color:var(--success);}
@@ -74,11 +112,11 @@ a{color:var(--blue);text-decoration:none;}
 .badge-warning{background:var(--warning-bg);color:var(--warning);}
 .badge-blue{background:#EFF4FF;color:var(--blue);}
 .badge-navy{background:#E9EDF5;color:var(--navy);}
-.badge-grey{background:#F2F4F7;color:var(--text2);}
+.badge-grey{background:var(--surface-2);color:var(--text2);}
 
 input[type=text],input[type=password],input[type=email],input[type=number],input[type=date],input[type=time],select,textarea{
   width:100%;padding:11px 13px;border-radius:10px;border:1.5px solid var(--border);
-  font-size:14px;color:var(--text);background:#fff;outline:none;transition:border-color .15s;
+  font-size:14px;color:var(--text);background:var(--card);outline:none;transition:border-color .15s;
 }
 input:focus,select:focus,textarea:focus{border-color:var(--blue);}
 label{font-size:12.5px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px;}
@@ -100,29 +138,41 @@ label{font-size:12.5px;font-weight:600;color:var(--text2);display:block;margin-b
 
 /* ===== Modal ===== */
 .modal-overlay{position:fixed;inset:0;background:rgba(11,31,58,.55);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;}
-.modal-box{background:#fff;border-radius:16px;max-width:640px;width:100%;max-height:88vh;overflow:auto;box-shadow:var(--shadow-lg);}
-.modal-head{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid var(--border);position:sticky;top:0;background:#fff;z-index:2;}
+.modal-box{background:var(--card);border-radius:16px;max-width:640px;width:100%;max-height:88vh;overflow:auto;box-shadow:var(--shadow-lg);}
+.modal-head{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--card);z-index:2;}
 .modal-body{padding:22px;}
 .modal-close{background:none;border:none;font-size:20px;color:var(--text2);}
 
 /* ===== Login ===== */
 .login-wrap{min-height:100vh;display:flex;}
-.login-hero{flex:1.1;background:linear-gradient(160deg,var(--navy) 0%,#122a4d 55%,var(--blue) 130%);color:#fff;display:flex;flex-direction:column;justify-content:center;padding:60px;position:relative;overflow:hidden;}
-.login-hero::before{content:'';position:absolute;width:480px;height:480px;background:radial-gradient(circle,rgba(255,176,0,.18),transparent 70%);top:-120px;right:-120px;}
+.login-hero{flex:1.15;background:
+    linear-gradient(160deg,var(--navy) 0%,var(--navy-2) 55%,var(--blue) 130%);
+  color:#fff;display:flex;flex-direction:column;justify-content:center;padding:64px 68px;position:relative;overflow:hidden;}
+.login-hero::after{content:'';position:absolute;inset:0;
+  background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);
+  background-size:42px 42px;pointer-events:none;}
+.login-hero::before{content:'';position:absolute;width:480px;height:480px;background:radial-gradient(circle,rgba(245,166,35,.16),transparent 70%);top:-120px;right:-120px;}
+.login-hero-content{position:relative;z-index:1;}
+.login-logo-row{display:flex;align-items:center;gap:12px;margin-bottom:34px;}
+.login-logo-icon{width:44px;height:44px;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.hero-badge{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:#E4C97A;font-size:12px;font-weight:700;letter-spacing:.2px;padding:7px 14px;border-radius:999px;margin-bottom:26px;}
 .login-hero .brand{font-size:13px;font-weight:700;letter-spacing:1.5px;color:var(--accent);margin-bottom:22px;}
-.login-hero h1{color:#fff;font-size:44px;line-height:1.12;max-width:480px;}
-.login-hero p.sub{color:#C6D3EE;font-size:16px;margin-top:18px;max-width:420px;line-height:1.6;}
-.exam-pill{background:rgba(255,255,255,.12);border:1px solid rgba(255,176,0,.5);color:#fff;font-weight:700;font-size:14px;padding:7px 16px;border-radius:999px;letter-spacing:.3px;}
+.login-hero h1{color:#fff;font-size:56px;line-height:1.14;max-width:560px;letter-spacing:-1px;}
+.login-hero p.sub{color:#B9C6E0;font-size:16px;margin-top:18px;max-width:440px;line-height:1.65;}
+.exam-pill{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:#fff;font-weight:700;font-size:13.5px;padding:8px 17px;border-radius:999px;letter-spacing:.3px;transition:background .2s var(--ease), border-color .2s var(--ease);}
+.exam-pill:hover{background:rgba(245,166,35,.14);border-color:rgba(245,166,35,.5);}
 .hero-fade{opacity:0;transform:translateY(14px);animation:heroFadeIn .6s ease forwards;}
 @keyframes heroFadeIn{to{opacity:1;transform:translateY(0);}}
 .hero-stats{display:flex;gap:34px;margin-top:46px;}
 .hero-stats div b{display:block;font-size:26px;font-family:'Manrope';font-weight:800;color:#fff;}
 .hero-stats div span{font-size:12.5px;color:#9FB3D6;}
+.hero-footer-note{position:relative;z-index:1;display:flex;gap:28px;margin-top:64px;font-size:12.5px;color:#8CA0C4;}
+.hero-footer-note span{display:inline-flex;align-items:center;gap:6px;}
 .login-panel{flex:1;display:flex;align-items:center;justify-content:center;padding:40px;background:var(--bg);}
 .login-card{width:100%;max-width:380px;}
-.role-tabs{display:flex;background:#EEF2F6;border-radius:11px;padding:4px;margin-bottom:26px;}
-.role-tab{flex:1;text-align:center;padding:9px;border-radius:8px;font-weight:700;font-size:13.5px;color:var(--text2);cursor:pointer;transition:all .15s;}
-.role-tab.active{background:#fff;color:var(--navy);box-shadow:var(--shadow);}
+.role-tabs{display:flex;background:var(--surface-2);border-radius:12px;padding:4px;margin-bottom:26px;}
+.role-tab{flex:1;text-align:center;padding:9px;border-radius:9px;font-weight:700;font-size:13.5px;color:var(--text2);cursor:pointer;transition:all .2s var(--ease);}
+.role-tab.active{background:var(--card);color:var(--navy);box-shadow:var(--shadow);}
 .demo-hint{background:#EFF4FF;border:1px solid #D6E4FF;border-radius:10px;padding:10px 13px;font-size:12px;color:var(--blue);margin-top:14px;line-height:1.6;}
 
 /* ===== App Shell (Admin) ===== */
@@ -137,23 +187,23 @@ label{font-size:12.5px;font-weight:600;color:var(--text2);display:block;margin-b
 .nav-item.active{background:var(--blue);color:#fff;}
 .nav-icon{width:18px;text-align:center;font-size:15px;}
 .sidebar-foot{padding:16px 22px;border-top:1px solid rgba(255,255,255,.08);font-size:12.5px;color:#8DA1C4;}
-.topbar{height:66px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 26px;position:sticky;top:0;z-index:50;}
+.topbar{height:66px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 26px;position:sticky;top:0;z-index:50;}
 .topbar h2{font-size:19px;}
 .main{flex:1;padding:26px;max-width:100%;overflow-x:hidden;}
 .mobile-toggle{display:none;background:none;border:none;font-size:22px;color:var(--navy);}
 
 .grid-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin-bottom:24px;}
-.stat-card{background:#fff;border-radius:var(--radius);border:1px solid var(--border);padding:18px 20px;box-shadow:var(--shadow);}
+.stat-card{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);padding:18px 20px;box-shadow:var(--shadow);}
 .stat-card .lbl{font-size:12.5px;color:var(--text2);font-weight:600;margin-bottom:8px;}
 .stat-card .val{font-family:'Manrope';font-weight:800;font-size:26px;color:var(--navy);}
 .stat-card .delta{font-size:11.5px;font-weight:700;margin-top:6px;}
 
 table{width:100%;border-collapse:collapse;font-size:13.5px;}
-th{text-align:left;padding:11px 14px;background:#F9FAFB;color:var(--text2);font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border);white-space:nowrap;}
+th{text-align:left;padding:11px 14px;background:var(--surface-2);color:var(--text2);font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border);white-space:nowrap;}
 td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:middle;}
 tr:last-child td{border-bottom:none;}
-.table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border);background:#fff;}
-.table-wrap table thead th{position:sticky;top:0;background:#F9FAFB;z-index:2;box-shadow:0 1px 0 var(--border);}
+.table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border);background:var(--card);}
+.table-wrap table thead th{position:sticky;top:0;background:var(--surface-2);z-index:2;box-shadow:0 1px 0 var(--border);}
 .table-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
 .search-box{position:relative;min-width:220px;flex:1;max-width:340px;}
 .search-box input{padding-left:34px;}
@@ -165,7 +215,7 @@ tr:last-child td{border-bottom:none;}
 .tabbtn{padding:11px 4px;margin-right:22px;font-weight:700;font-size:13.5px;color:var(--text2);border:none;background:none;border-bottom:2.5px solid transparent;margin-bottom:-2px;white-space:nowrap;}
 .tabbtn.active{color:var(--blue);border-color:var(--blue);}
 
-.progress-bar{height:8px;background:#EEF2F6;border-radius:6px;overflow:hidden;}
+.progress-bar{height:8px;background:var(--surface-2);border-radius:6px;overflow:hidden;}
 .progress-bar > div{height:100%;border-radius:6px;background:var(--blue);}
 
 /* ===== Wizard ===== */
@@ -175,13 +225,16 @@ tr:last-child td{border-bottom:none;}
 .wstep.done{border-color:var(--success);color:var(--success);}
 
 /* ===== Question card ===== */
-.qcard{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;}
+.qcard{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;}
 .qmeta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
 .opt-row{display:flex;align-items:flex-start;gap:8px;padding:6px 0;font-size:13.5px;}
 .opt-row.correct{color:var(--success);font-weight:700;}
 
 /* ===== STUDENT PORTAL ===== */
 .stu-header{background:var(--navy);color:#fff;padding:16px 22px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+.stu-avatar{width:34px;height:34px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;}
+.stu-logout-btn{width:34px;height:34px;border-radius:9px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;transition:background .15s var(--ease);flex-shrink:0;}
+.stu-logout-btn:hover{background:rgba(255,255,255,.14);}
 .stu-header .brand{font-family:'Manrope';font-weight:800;font-size:16px;}
 .stu-header .brand span{color:var(--accent);}
 .stu-shell{max-width:1180px;margin:0 auto;padding:26px 20px 60px;}
@@ -189,9 +242,113 @@ tr:last-child td{border-bottom:none;}
 .welcome-band::after{content:'';position:absolute;right:-60px;top:-60px;width:220px;height:220px;background:radial-gradient(circle,rgba(255,176,0,.22),transparent 70%);}
 .welcome-band h2{color:#fff;font-size:24px;}
 .welcome-band p{color:#C6D3EE;margin-top:6px;font-size:14px;}
-.test-avail-card{background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:22px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;box-shadow:var(--shadow);}
+.test-avail-card{background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius);padding:22px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;box-shadow:var(--shadow);}
 .test-avail-card .pill{background:#EFF4FF;color:var(--blue);font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:100px;}
-.pattern-chip{background:#F9FAFB;border:1px solid var(--border);border-radius:9px;padding:9px 13px;font-size:12.5px;font-weight:600;color:var(--text2);}
+.pattern-chip{background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:9px 13px;font-size:12.5px;font-weight:600;color:var(--text2);}
+
+/* ===== New Dashboard Design System ===== */
+@keyframes fadeInUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+.fade-in-up{opacity:0;animation:fadeInUp .5s var(--ease) forwards;}
+.dash-hero{background:linear-gradient(135deg,var(--navy) 0%,var(--navy-2) 60%,#173B6E 130%);color:#fff;border-radius:20px;padding:32px 34px;margin-bottom:20px;position:relative;overflow:hidden;}
+.dash-hero::after{content:'';position:absolute;right:-70px;top:-90px;width:260px;height:260px;background:radial-gradient(circle,rgba(245,166,35,.20),transparent 70%);}
+.dash-hero-top{position:relative;z-index:1;margin-bottom:14px;}
+.dash-hero-tag{display:inline-block;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:#CBD8F0;font-size:11px;font-weight:700;letter-spacing:.6px;padding:5px 12px;border-radius:100px;}
+.dash-hero h2{position:relative;z-index:1;color:#fff;font-size:27px;line-height:1.3;max-width:640px;}
+.accent-text{color:var(--accent);}
+.dash-hero-sub{position:relative;z-index:1;color:#B9C6E0;margin-top:8px;font-size:14.5px;max-width:560px;line-height:1.6;}
+.dash-hero-actions{position:relative;z-index:1;display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;}
+.dash-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:22px;}
+.dash-stat{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow);}
+.dash-stat-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.dash-stat b{display:block;font-size:20px;font-family:'Manrope';font-weight:800;color:var(--text);line-height:1.2;}
+.dash-stat span{font-size:12px;color:var(--text2);}
+
+/* ===== NEET PG Rank Predictor — dedicated, consistent styling ===== */
+@keyframes rpAuroraDrift{
+  0%{transform:translate(-6%,-4%) scale(1);}
+  50%{transform:translate(6%,5%) scale(1.12);}
+  100%{transform:translate(-6%,-4%) scale(1);}
+}
+@keyframes rpAuroraDrift2{
+  0%{transform:translate(5%,4%) scale(1.05);}
+  50%{transform:translate(-7%,-3%) scale(0.95);}
+  100%{transform:translate(5%,4%) scale(1.05);}
+}
+.rp-hero{
+  position:relative;overflow:hidden;background:#F8FAFF;
+  border-radius:20px;padding:44px 32px 34px;margin-bottom:22px;text-align:center;
+}
+.rp-hero::before{
+  content:'';position:absolute;width:520px;height:340px;left:50%;top:-30%;transform:translateX(-50%);
+  background:radial-gradient(ellipse,rgba(21,94,239,.22),transparent 70%);
+  animation:rpAuroraDrift 14s ease-in-out infinite;pointer-events:none;
+}
+.rp-hero::after{
+  content:'';position:absolute;width:420px;height:300px;right:10%;bottom:-40%;
+  background:radial-gradient(ellipse,rgba(245,166,35,.14),transparent 70%);
+  animation:rpAuroraDrift2 16s ease-in-out infinite;pointer-events:none;
+}
+.rp-hero-inner{position:relative;z-index:1;}
+.rp-hero-tag{display:inline-block;background:rgba(21,94,239,.08);border:1px solid rgba(21,94,239,.18);color:var(--blue);font-size:11px;font-weight:700;letter-spacing:.6px;padding:5px 12px;border-radius:100px;margin-bottom:16px;}
+.rp-hero h2{color:var(--navy);font-size:38px;font-weight:800;line-height:1.15;margin-bottom:14px;letter-spacing:-.5px;}
+.rp-hero-sub{color:var(--text2);font-size:16px;line-height:1.6;max-width:620px;margin:0 auto;}
+.rp-hero-sub b{color:var(--navy);font-weight:700;}
+.rp-hero-note{color:var(--text3);font-size:13.5px;margin-top:12px;line-height:1.6;}
+
+.rp-stats{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-bottom:22px;}
+.rp-stat{background:var(--card);border:1px solid var(--border);border-radius:999px;padding:12px 22px;display:flex;align-items:baseline;gap:7px;box-shadow:var(--shadow);}
+.rp-stat-icon{display:none;}
+.rp-stat b{font-size:17px;font-family:'Manrope';font-weight:800;color:var(--navy);}
+.rp-stat span{font-size:14px;color:var(--text2);}
+
+.rp-disclaimer{background:var(--warning-bg);border:1px solid var(--warning);color:var(--text2);border-radius:14px;padding:16px 22px;font-size:13.5px;line-height:1.7;margin-bottom:22px;font-style:italic;text-align:center;max-width:820px;margin-left:auto;margin-right:auto;}
+
+.rp-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:26px;max-width:620px;margin:0 auto;}
+.rp-modeswitch{display:flex;gap:6px;background:var(--surface-2);padding:5px;border-radius:999px;margin-bottom:22px;}
+.rp-modeswitch .btn{flex:1;border-radius:999px !important;}
+.rp-label{font-size:12.5px;font-weight:700;color:var(--text2);display:block;margin-bottom:7px;letter-spacing:.1px;}
+.rp-input{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font-size:15px;font-family:'Manrope';font-weight:700;}
+.rp-input:focus{outline:none;border-color:var(--blue);}
+.rp-hint{font-size:12px;color:var(--text2);margin-top:6px;}
+.rp-section-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.rp-section-grid .rp-input{font-size:14px;padding:9px 10px;}
+.rp-calc-line{margin-top:10px;font-size:13px;color:var(--text2);font-weight:600;}
+
+.rp-pillrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+.rp-pill{border-radius:999px !important;padding:8px 16px !important;font-size:13px !important;}
+
+.rp-predict-btn{width:100%;margin-top:22px;padding:14px 20px !important;font-size:15px !important;border-radius:999px !important;}
+
+.rp-result{margin-top:22px;padding-top:22px;border-top:1px solid var(--border);text-align:center;}
+.rp-result-eyebrow{font-size:11.5px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;}
+.rp-result-air{font-size:38px;font-weight:800;font-family:'Manrope';color:var(--navy);margin:8px 0 4px;letter-spacing:-.5px;}
+.rp-result-sub{font-size:13px;color:var(--text2);}
+.rp-result-pct{margin-top:14px;}
+.rp-result-pct b{display:block;font-size:20px;font-family:'Manrope';font-weight:800;color:var(--navy);}
+.rp-result-pct span{font-size:11.5px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;}
+.rp-result-note{font-size:12px;color:var(--text2);margin-top:14px;line-height:1.6;}
+
+.rp-specialty{margin-top:24px;text-align:left;}
+.rp-specialty-head{font-size:11.5px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;}
+.rp-specialty-sub{font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.5;}
+
+.dash-section-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:14px;}
+.subj-filter-tabs{display:flex;gap:4px;background:var(--surface-2);border-radius:11px;padding:4px;}
+.subj-filter-tab{border:none;background:none;padding:8px 14px;border-radius:8px;font-size:12.5px;font-weight:700;color:var(--text2);cursor:pointer;transition:all .2s var(--ease);white-space:nowrap;}
+.subj-filter-tab.active{background:var(--card);color:var(--navy);box-shadow:var(--shadow);}
+html[data-theme="dark"] .subj-filter-tab.active{color:var(--text);}
+.dash-eyebrow{font-size:11.5px;font-weight:700;color:var(--blue);letter-spacing:.5px;}
+.dash-section-head h3{font-size:19px;margin-top:4px;}
+.test-card{background:var(--card);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow);margin-bottom:16px;display:flex;overflow:hidden;transition:box-shadow .2s var(--ease), transform .2s var(--ease);}
+.test-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-2px);}
+.test-card-accent{width:5px;background:linear-gradient(180deg,var(--blue),var(--blue-bright));flex-shrink:0;}
+.test-card-body{padding:22px 24px;flex:1;min-width:0;}
+.test-meta-row{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:12.5px;color:var(--text2);}
+.test-progress-track{height:6px;border-radius:4px;background:var(--surface-2);overflow:hidden;margin-top:16px;}
+.test-progress-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--blue-bright));border-radius:4px;transition:width .5s var(--ease);}
+.part-row{border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:10px;background:var(--bg);}
+.part-progress-track{height:5px;border-radius:4px;background:var(--border);overflow:hidden;}
+.part-progress-fill{height:100%;background:var(--success);border-radius:4px;transition:width .5s var(--ease);}
 
 /* ===== Instructions ===== */
 .instr-list{list-style:none;padding:0;margin:0;}
@@ -212,7 +369,7 @@ tr:last-child td{border-bottom:none;}
 .stu-chip{text-align:right;font-size:11.5px;color:#C6D3EE;}
 .stu-chip b{color:#fff;font-size:13px;display:block;}
 
-.section-strip{display:flex;background:#fff;border-bottom:1px solid var(--border);padding:0 14px;overflow-x:auto;flex-shrink:0;}
+.section-strip{display:flex;background:var(--card);border-bottom:1px solid var(--border);padding:0 14px;overflow-x:auto;flex-shrink:0;}
 .sec-pill{padding:10px 16px;font-size:12px;font-weight:700;color:var(--text2);border-bottom:3px solid transparent;white-space:nowrap;display:flex;align-items:center;gap:6px;}
 .sec-pill.locked{color:#B0BAC9;}
 .sec-pill.active-sec{color:var(--blue);border-color:var(--blue);background:#F5F8FF;}
@@ -220,26 +377,26 @@ tr:last-child td{border-bottom:none;}
 
 .exam-body{flex:1;display:flex;overflow:hidden;}
 .exam-main{flex:1;overflow-y:auto;padding:26px 30px 100px;}
-.qbox{background:#fff;border-radius:16px;border:1px solid var(--border);padding:26px;max-width:760px;box-shadow:var(--shadow);}
+.qbox{background:var(--card);border-radius:16px;border:1px solid var(--border);padding:26px;max-width:760px;box-shadow:var(--shadow);}
 .qbox .qnum{font-size:12px;font-weight:700;color:var(--blue);letter-spacing:.3px;margin-bottom:10px;}
 .qbox .qtext{font-size:16px;line-height:1.65;font-weight:500;margin-bottom:18px;}
 .qimg{max-width:100%;border-radius:10px;border:1px solid var(--border);margin-bottom:18px;cursor:zoom-in;}
-.option-btn{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:1.5px solid var(--border);border-radius:12px;margin-bottom:10px;cursor:pointer;transition:all .12s;background:#fff;}
+.option-btn{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:1.5px solid var(--border);border-radius:12px;margin-bottom:10px;cursor:pointer;transition:all .12s;background:var(--card);}
 .option-btn:hover{border-color:#AFC7FA;background:#F8FAFF;}
 .option-btn.selected{border-color:var(--blue);background:#EFF4FF;}
 .option-letter{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;color:var(--text2);flex-shrink:0;}
 .option-btn.selected .option-letter{background:var(--blue);border-color:var(--blue);color:#fff;}
 .option-text{font-size:14.5px;line-height:1.5;padding-top:3px;}
 
-.exam-toolbar{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--border);padding:14px 30px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
-.palette-panel{width:270px;border-left:1px solid var(--border);background:#fff;padding:18px;overflow-y:auto;flex-shrink:0;}
+.exam-toolbar{position:sticky;bottom:0;background:var(--card);border-top:1px solid var(--border);padding:14px 30px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+.palette-panel{width:270px;border-left:1px solid var(--border);background:var(--card);padding:18px;overflow-y:auto;flex-shrink:0;}
 .palette-panel h4{font-size:12.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--text2);margin-bottom:12px;}
 .palette-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px;}
-.pnode{aspect-ratio:1;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid var(--border);color:var(--text2);background:#fff;}
+.pnode{aspect-ratio:1;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid var(--border);color:var(--text2);background:var(--card);}
 .pnode.answered{background:var(--success);color:#fff;border-color:var(--success);}
 .pnode.notanswered{background:var(--error-bg);color:var(--error);border-color:#F9CAC4;}
 .pnode.marked{background:var(--accent);color:#3A2400;border-color:var(--accent);}
-.pnode.notvisited{background:#fff;color:var(--text2);}
+.pnode.notvisited{background:var(--card);color:var(--text2);}
 .pnode.current{outline:2.5px solid var(--navy);outline-offset:1px;}
 .legend-row{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--text2);margin-bottom:7px;}
 .legend-dot{width:12px;height:12px;border-radius:4px;flex-shrink:0;}
@@ -267,6 +424,25 @@ tr:last-child td{border-bottom:none;}
 }
 
 .fab-palette-btn{display:none;}
+.medmind-fab{position:fixed;bottom:24px;right:24px;width:58px;height:58px;border-radius:50%;background:var(--card);border:none;box-shadow:0 8px 24px rgba(139,47,201,.28);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:200;transition:transform .2s var(--ease);padding:0;}
+.medmind-fab:hover{transform:scale(1.08);}
+.medmind-fab-label{position:fixed;bottom:38px;right:90px;background:var(--navy);color:#fff;font-size:12px;font-weight:700;padding:8px 14px;border-radius:100px;box-shadow:var(--shadow-lg);z-index:200;white-space:nowrap;pointer-events:none;animation:fadeInUp .5s var(--ease) .3s backwards;transition:opacity .35s var(--ease), transform .35s var(--ease);}
+.medmind-fab-label.fading{opacity:0;transform:translateY(8px);}
+.medmind-fab-label::after{content:'';position:absolute;right:-5px;top:50%;transform:translateY(-50%);border:6px solid transparent;border-left-color:var(--navy);}
+.theme-toggle-btn{width:36px;height:36px;border-radius:10px;background:var(--surface-2);border:1px solid var(--border);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:background .15s var(--ease);flex-shrink:0;}
+.theme-toggle-btn:hover{background:var(--border);}
+.theme-toggle-btn-dark{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16);color:#fff;}
+.theme-toggle-btn-dark:hover{background:rgba(255,255,255,.16);}
+.medmind-panel{position:fixed;bottom:92px;right:24px;width:340px;max-width:calc(100vw - 32px);height:460px;max-height:calc(100vh - 140px);background:var(--card);border-radius:18px;box-shadow:var(--shadow-lg);z-index:200;flex-direction:column;overflow:hidden;border:1px solid var(--border);}
+.medmind-panel-header{display:flex;align-items:center;gap:10px;padding:14px 16px;background:linear-gradient(135deg,var(--navy),var(--navy-2));}
+.medmind-panel-log{flex:1;overflow-y:auto;padding:14px;background:#FDFAFF;}
+.medmind-panel-input-row{display:flex;gap:8px;padding:10px;border-top:1px solid var(--border);}
+.medmind-panel-input-row input{flex:1;}
+.medmind-panel-footer{font-size:10.5px;color:var(--text3);text-align:center;padding:6px 12px 10px;background:var(--card);}
+@media(max-width:600px){
+  .medmind-panel{right:12px;bottom:84px;width:calc(100vw - 24px);}
+  .medmind-fab{right:14px;bottom:14px;}
+}
 @media(max-width:900px){
   .fab-palette-btn{display:flex;position:fixed;bottom:112px;right:16px;z-index:65;background:var(--navy);color:#fff;border-radius:100px;padding:11px 18px;font-weight:700;font-size:12.5px;align-items:center;gap:6px;box-shadow:var(--shadow-lg);border:none;}
 }
@@ -274,7 +450,7 @@ tr:last-child td{border-bottom:none;}
 .result-score{font-family:'Manrope';font-weight:800;font-size:52px;color:var(--navy);}
 .mini-bar{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
 .mini-bar .lbl{width:120px;font-size:12.5px;font-weight:600;color:var(--text2);flex-shrink:0;}
-.mini-bar .track{flex:1;height:9px;background:#EEF2F6;border-radius:6px;overflow:hidden;}
+.mini-bar .track{flex:1;height:9px;background:var(--surface-2);border-radius:6px;overflow:hidden;}
 .mini-bar .fill{height:100%;border-radius:6px;}
 .mini-bar .pct{width:42px;text-align:right;font-size:12px;font-weight:700;color:var(--text2);}
 
@@ -282,7 +458,7 @@ tr:last-child td{border-bottom:none;}
 .empty-state{text-align:center;padding:50px 20px;color:var(--text2);}
 .empty-state .icon{font-size:38px;margin-bottom:10px;}
 
-.kbd-note{font-size:11.5px;color:var(--text2);background:#F9FAFB;border:1px solid var(--border);border-radius:8px;padding:8px 12px;}
+.kbd-note{font-size:11.5px;color:var(--text2);background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;}
 .lock-banner{background:var(--warning-bg);border:1px solid #FEDF89;color:#93610D;border-radius:10px;padding:12px 16px;font-size:13px;font-weight:600;margin-bottom:16px;}
 .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(0,0,0,.15);border-top-color:var(--primary,#155EEF);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px;}
 .spinner-white{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px;}
@@ -421,6 +597,7 @@ const DB = {
     return value;
   }
 };
+
 
 // ---------- global in-memory state ----------
 const S = {
@@ -575,6 +752,23 @@ function buildFakeAttempts(test, questions, count=64){
 }
 
 // ---------- boot / seed ----------
+function applyTheme(theme){
+  document.documentElement.dataset.theme = theme;
+  localStorage.setItem('fmge_theme', theme);
+}
+function toggleTheme(){
+  const current = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+  updateThemeToggleIcons();
+}
+function updateThemeToggleIcons(){
+  const isDark = document.documentElement.dataset.theme === 'dark';
+  $$('[data-theme-toggle]').forEach(btn=>{ btn.textContent = isDark? '☀️' : '🌙'; btn.title = isDark? 'Switch to light mode' : 'Switch to dark mode'; });
+}
+// Apply any saved theme immediately, before the first render, so there's
+// no flash of the wrong theme on page load.
+applyTheme(localStorage.getItem('fmge_theme') || 'light');
+
 async function boot(){
   const seeded = await DB.get('seeded_v1', false, true);
   if(!seeded){
@@ -710,20 +904,33 @@ function renderLogin(app){
   app.innerHTML = `
   <div class="login-wrap">
     <div class="login-hero">
-      <div class="brand hero-fade" style="animation-delay:.05s;">FMGs NEVER GIVE UP.</div>
-      <h1 class="hero-fade" style="animation-delay:.15s;">Your Exam. Your Preparation.<br>Your Performance.</h1>
-      <div class="exam-badges hero-fade" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:20px;animation-delay:.3s;">
+      <div class="login-hero-content">
+      <div class="login-logo-row hero-fade" style="animation-delay:0s;">
+        <div class="login-logo-icon">🎓</div>
+        <div><div class="brand" style="margin-bottom:2px;">FMGs NEVER GIVE UP</div><div style="font-size:11px;letter-spacing:1.5px;color:#8CA0C4;font-weight:700;">NATIONAL TEST SERIES</div></div>
+      </div>
+      <div class="hero-badge hero-fade" style="animation-delay:.08s;">✨ India's focused medical exam platform</div>
+      <h1 class="hero-fade" style="animation-delay:.18s;">Your exam.<br>Your preparation.<br><span class="accent-text">Your performance.</span></h1>
+      <p class="sub hero-fade" style="animation-delay:.32s;">Train in the same rhythm as the real exam, see where you stand nationally, and turn every mistake into momentum.</p>
+      <div class="exam-badges hero-fade" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:22px;animation-delay:.44s;">
         <span class="exam-pill">FMGE</span>
         <span class="exam-pill">NEET PG</span>
         <span class="exam-pill">INI-CET</span>
       </div>
-      <p class="sub hero-fade" style="animation-delay:.42s;">Real Exam Experience • Instant Ranking • Deep Analytics</p>
-      <p class="hero-fade" style="color:#fff;font-size:20px;font-weight:800;letter-spacing:.5px;margin-top:20px;animation-delay:.55s;">TEST YOUR PREPARATION.</p>
+      <div class="hero-footer-note hero-fade" style="animation-delay:.58s;">
+        <span>🛡 Secure exam environment</span>
+        <span>Built for serious aspirants</span>
+      </div>
+      </div>
     </div>
     <div class="login-panel">
       <div class="login-card">
-        <h2 style="font-size:22px;margin-bottom:4px;">Welcome back</h2>
-        <p style="color:var(--text2);font-size:13.5px;margin-bottom:22px;">Sign in to continue</p>
+        <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+          <button type="button" class="theme-toggle-btn" data-theme-toggle onclick="toggleTheme()" title="Toggle dark mode">${document.documentElement.dataset.theme==='dark'?'☀️':'🌙'}</button>
+        </div>
+        <div style="font-size:12px;font-weight:700;letter-spacing:.6px;color:var(--blue);margin-bottom:8px;">WELCOME BACK</div>
+        <h2 style="font-size:26px;margin-bottom:8px;">Continue your preparation</h2>
+        <p style="color:var(--text2);font-size:13.5px;margin-bottom:22px;">Sign in to access your test series.</p>
         <div class="role-tabs">
           <div class="role-tab ${role==='student'?'active':''}" data-role="student">Student</div>
           <div class="role-tab ${role==='admin'?'active':''}" data-role="admin">Admin</div>
@@ -740,7 +947,7 @@ function renderLogin(app){
           ${role==='student'?`<div style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:18px;font-size:12.5px;color:var(--text2)">
             <a href="#" id="forgotPwLink">Forgot password?</a>
           </div>`:''}
-          <button class="btn btn-primary btn-block" type="submit" id="loginSubmitBtn" style="padding:13px;">${role==='admin'?'LOGIN TO ADMIN PANEL':'LOGIN & START'}</button>
+          <button class="btn btn-primary btn-block" type="submit" id="loginSubmitBtn" style="padding:13px;">${role==='admin'?'Login to admin panel':'Login &amp; start'} <span style="margin-left:2px;">›</span></button>
         </form>
         ${role==='student'?`<p style="font-size:12px;color:var(--text2);margin-top:16px;">Your Student ID and password are provided by your institute administrator.</p>`:''}
         <div style="margin-top:22px;padding-top:16px;border-top:1px solid var(--border);font-size:12.5px;color:var(--text2);text-align:center;">
@@ -783,6 +990,7 @@ const ADMIN_NAV = [
   ['results','🏁','Results'],
   ['analytics','📈','Analytics'],
   ['leaderboard','🏆','Leaderboard'],
+  ['rankpredictor','🎯','Rank Predictor'],
   ['settings','⚙️','Settings'],
   ['audit','🧾','Audit Logs'],
 ];
@@ -807,12 +1015,14 @@ function renderAdminShell(app){
         </div>
         <div style="display:flex;align-items:center;gap:10px;">
           <span class="badge badge-blue">Role: Admin</span>
+          <button type="button" class="theme-toggle-btn" data-theme-toggle onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
           <button class="btn btn-ghost btn-sm" id="logoutBtn">Log out</button>
         </div>
       </div>
       <div class="main" id="adminMain"></div>
     </div>
   </div>`;
+  updateThemeToggleIcons();
   $('#toggleSidebar').onclick=()=>{S.sidebarOpen=!S.sidebarOpen; render();};
   $('#logoutBtn').onclick=doLogout;
   $$('.nav-item').forEach(n=>n.onclick=()=>{S.adminSection=n.dataset.sec; S.sidebarOpen=false; render();});
@@ -822,7 +1032,7 @@ async function renderAdminSection(root){
   const map = {
     dashboard: adminDashboard, students: adminStudents, questionbank: adminQuestionBank,
     tests: adminTests, live: adminLive, results: adminResults, analytics: adminAnalytics,
-    leaderboard: adminLeaderboard, settings: adminSettings, audit: adminAudit,
+    leaderboard: adminLeaderboard, rankpredictor: adminRankPredictor, settings: adminSettings, audit: adminAudit,
   };
   root.innerHTML = `<div class="empty-state">Loading…</div>`;
   await map[S.adminSection](root);
@@ -866,23 +1076,51 @@ function svgHorizontalBarChart(data, {width=560,rowHeight=26,labelWidth=120,colo
   });
   return `<svg viewBox="0 0 ${width} ${height}" width="100%" style="max-width:${width}px;display:block;">${rows}</svg>`;
 }
-function svgLineChart(points,{width=560,height=180,color='#155EEF'}={}){
+function svgDonutChart(segments,{size=160,thickness=22,centerLabel='',centerSub=''}={}){
+  // segments: [{label, value, color}]
+  const total = segments.reduce((a,s)=>a+s.value,0) || 1;
+  const r = (size-thickness)/2;
+  const cx=size/2, cy=size/2;
+  const circumference = 2*Math.PI*r;
+  let offset = 0;
+  const arcs = segments.filter(s=>s.value>0).map(s=>{
+    const frac = s.value/total;
+    const dash = frac*circumference;
+    const el = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${s.color}" stroke-width="${thickness}"
+      stroke-dasharray="${dash} ${circumference-dash}" stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})" stroke-linecap="butt"/>`;
+    offset += dash;
+    return el;
+  }).join('');
+  return `<div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;">
+    <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--surface-2)" stroke-width="${thickness}"/>
+      ${arcs}
+      <text x="${cx}" y="${cy-2}" text-anchor="middle" font-size="20" font-weight="800" fill="var(--text)" font-family="Manrope">${esc(centerLabel)}</text>
+      <text x="${cx}" y="${cy+16}" text-anchor="middle" font-size="10.5" fill="var(--text2)">${esc(centerSub)}</text>
+    </svg>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      ${segments.map(s=>`<div style="display:flex;align-items:center;gap:7px;font-size:12.5px;"><span style="width:10px;height:10px;border-radius:3px;background:${s.color};flex-shrink:0;"></span><span style="color:var(--text2);">${esc(s.label)}</span><b style="margin-left:auto;">${s.value}</b></div>`).join('')}
+    </div>
+  </div>`;
+}
+function svgLineChart(points,{width=560,height=200,color='#155EEF',suffix=''}={}){
   const max = Math.max(1,...points.map(p=>p.y));
   const stepX = (width-40)/(points.length-1||1);
   const coords = points.map((p,i)=>{
-    const x=30+i*stepX; const y = height-30-(p.y/max)*(height-50);
+    const x=30+i*stepX; const y = height-40-(p.y/max)*(height-70);
     return [x,y];
   });
   const path = coords.map((c,i)=> (i===0?'M':'L')+c[0].toFixed(1)+' '+c[1].toFixed(1)).join(' ');
   const area = path + ` L${coords[coords.length-1][0]},${height-30} L${coords[0][0]},${height-30} Z`;
   return `<svg viewBox="0 0 ${width} ${height}" width="100%" style="max-width:${width}px">
     <defs><linearGradient id="lg1" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="${color}" stop-opacity="0.25"/><stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+      <stop offset="0%" stop-color="${color}" stop-opacity="0.22"/><stop offset="100%" stop-color="${color}" stop-opacity="0"/>
     </linearGradient></defs>
     <line x1="30" y1="${height-30}" x2="${width-10}" y2="${height-30}" stroke="#E4E7EC"/>
     <path d="${area}" fill="url(#lg1)"/>
-    <path d="${path}" fill="none" stroke="${color}" stroke-width="2.5"/>
-    ${coords.map((c,i)=>`<circle cx="${c[0]}" cy="${c[1]}" r="3.5" fill="${color}"/>`).join('')}
+    <path d="${path}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    ${coords.map((c,i)=>`<circle cx="${c[0]}" cy="${c[1]}" r="4" fill="#fff" stroke="${color}" stroke-width="2.5"/>`).join('')}
+    ${coords.map((c,i)=> i===coords.length-1? `<text x="${c[0]}" y="${c[1]-12}" font-size="12" font-weight="800" fill="${color}" text-anchor="middle">${points[i].y}${suffix}</text>` : '').join('')}
     ${points.map((p,i)=>`<text x="${coords[i][0]}" y="${height-12}" font-size="10" fill="#667085" text-anchor="middle">${esc(p.x)}</text>`).join('')}
   </svg>`;
 }
@@ -1755,6 +1993,7 @@ window.continueTestWizard = async(testId)=>{
     resultsVisible: settings?.results_visible ?? true, rankingEnabled: settings?.ranking_enabled ?? true,
     showCorrectAnswers: settings?.show_correct_answers ?? true, showExplanations: settings?.show_explanations ?? true,
     allowReview: settings?.allow_review ?? true, aiMentorEnabled: settings?.ai_mentor_enabled ?? true,
+    requiredTotal: data.required_total ?? '',
     parts: (data.parts||[]).map(p=>({
       id:p.id, partNumber:p.part_number, name:p.name, questionCount:p.question_count,
       selectedIds:new Set(),
@@ -1788,6 +2027,7 @@ function startTestWizard(){
     marksPerQuestion:1, negativeMarking:0.25,
     tabSwitchLimit:3, fullscreenRequired:true, disableCopyPaste:true,
     resultsVisible:true, rankingEnabled:true, showCorrectAnswers:true, showExplanations:true, allowReview:true, aiMentorEnabled:true,
+    requiredTotal:'',
     parts:[],
   };
   openWizardModal();
@@ -1826,6 +2066,7 @@ async function handleWizardNext(){
         p_max_attempts: w.maxAttempts, p_marks_per_question: w.marksPerQuestion, p_negative_marking: w.negativeMarking,
         p_instructions: w.instructions||null, p_results_visible: w.resultsVisible, p_ranking_enabled: w.rankingEnabled,
         p_show_correct_answers: w.showCorrectAnswers, p_show_explanations: w.showExplanations, p_allow_review: w.allowReview,
+        p_required_total: w.requiredTotal? parseInt(w.requiredTotal) : null,
       });
       if(error){ toast('Could not create test: '+error.message,'err'); return; }
       w.testId = data;
@@ -1842,12 +2083,16 @@ async function handleWizardNext(){
         p_ai_mentor_enabled: w.aiMentorEnabled,
       });
       if(error){ toast('Could not save settings: '+error.message,'err'); return; }
+      if(w.requiredTotal){
+        const { error: rtErr } = await sb.rpc('admin_set_required_total', {p_test_id: w.testId, p_required_total: parseInt(w.requiredTotal)});
+        if(rtErr){ toast('Could not update required total: '+rtErr.message,'err'); return; }
+      }
       await logAudit('Update Test Settings', w.name);
     }
     w.step=2; renderWizardStep(); refreshWizardChrome();
   } else if(w.step===2){
     if(!w.parts.length){ toast('Add at least one part','err'); return; }
-    const payload = w.parts.map(p=>({partNumber:p.partNumber, name:p.name, questionCount:p.questionCount, durationMin:p.durationMin||60}));
+    const payload = w.parts.map(p=>({id:p.id||null, partNumber:p.partNumber, name:p.name, questionCount:p.questionCount, durationMin:p.durationMin||60}));
     const { error } = await sb.rpc('admin_define_test_parts', {p_test_id:w.testId, p_parts: payload});
     if(error){ toast('Could not save parts: '+error.message,'err'); return; }
     const { data: test } = await sb.rpc('admin_get_test', {p_test_id:w.testId});
@@ -1883,6 +2128,11 @@ function renderWizardStep(){
       <div class="row">
         <div class="field"><label>End Date</label><input type="date" id="w_edate" value="${w.endDate}"></div>
         <div class="field"><label>End Time</label><input type="time" id="w_etime" value="${w.endTime}"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>Total Questions for this test</label><input type="number" min="1" id="w_reqtotal" value="${w.requiredTotal||''}" placeholder="e.g. 179 — you decide, no fixed number">
+          <p class="kbd-note" style="margin-top:4px;">This is your own target for this test — not tied to the exam type. Set it to whatever total you're building (e.g. 179).</p>
+        </div>
       </div>
       <div class="row">
         <div class="field"><label>Maximum Attempts</label><input type="number" min="1" id="w_max" value="${w.maxAttempts}"></div>
@@ -1925,6 +2175,7 @@ function renderWizardStep(){
     $('#w_edate').oninput=e=>w.endDate=e.target.value;
     $('#w_etime').oninput=e=>w.endTime=e.target.value;
     $('#w_max').oninput=e=>w.maxAttempts=parseInt(e.target.value)||1;
+    $('#w_reqtotal').oninput=e=>w.requiredTotal=e.target.value;
     $('#w_marks').oninput=e=>w.marksPerQuestion=parseFloat(e.target.value)||0;
     $('#w_negmark').oninput=e=>w.negativeMarking=parseFloat(e.target.value)||0;
     $('#w_tabswitch').oninput=e=>w.tabSwitchLimit=parseInt(e.target.value)||3;
@@ -2510,31 +2761,511 @@ window.confirmModal = (message, onConfirm, opts={})=>{
 window.S = S; // expose for inline handlers
 
 // =========================================================================
+// NEET PG RANK PREDICTOR — admin
+// =========================================================================
+async function adminRankPredictor(root){
+  S.rpAdminTab = S.rpAdminTab || 'config';
+  root.innerHTML = `
+    <div class="table-toolbar" style="margin-bottom:16px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        ${[['config','⚙️ Config'],['data','📊 Historical Data'],['specialty','🎓 Specialty Cutoffs'],['models','🧬 Model Versions'],['logs','🧾 Prediction Logs']].map(([k,l])=>`
+          <button type="button" class="btn btn-sm ${S.rpAdminTab===k?'btn-primary':'btn-outline'}" data-rptab="${k}">${l}</button>
+        `).join('')}
+      </div>
+    </div>
+    <div id="rpAdminBody"><div class="empty-state">Loading…</div></div>
+  `;
+  $$('[data-rptab]').forEach(b=>b.onclick=()=>{ S.rpAdminTab=b.dataset.rptab; adminRankPredictor(root); });
+  const body = $('#rpAdminBody');
+  if(S.rpAdminTab==='config') return rpAdminConfigTab(body);
+  if(S.rpAdminTab==='data') return rpAdminDataTab(body);
+  if(S.rpAdminTab==='specialty') return rpAdminSpecialtyTab(body);
+  if(S.rpAdminTab==='models') return rpAdminModelsTab(body);
+  if(S.rpAdminTab==='logs') return rpAdminLogsTab(body);
+}
+
+async function rpAdminConfigTab(root){
+  const { data: cfg, error } = await sb.rpc('neetpg_get_config');
+  if(error){ root.innerHTML = `<div class="empty-state">Could not load config: ${esc(error.message)}</div>`; return; }
+  root.innerHTML = `
+    <div class="card" style="padding:22px;max-width:640px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div><label style="font-size:12px;font-weight:700;">Exam Year</label><input id="cfgExamYear" type="number" value="${cfg.exam_year}"></div>
+        <div><label style="font-size:12px;font-weight:700;">Exam Date</label><input id="cfgExamDate" type="date" value="${cfg.exam_date||''}"></div>
+        <div><label style="font-size:12px;font-weight:700;">Total Questions</label><input id="cfgTotalQ" type="number" value="${cfg.total_questions}"></div>
+        <div><label style="font-size:12px;font-weight:700;">Maximum Score</label><input id="cfgMaxScore" type="number" value="${cfg.maximum_score}"></div>
+        <div><label style="font-size:12px;font-weight:700;">Marks / Correct</label><input id="cfgMarksCorrect" type="number" step="0.25" value="${cfg.marks_per_correct}"></div>
+        <div><label style="font-size:12px;font-weight:700;">Negative Marks</label><input id="cfgNegMarks" type="number" step="0.25" value="${cfg.negative_marks}"></div>
+        <div style="grid-column:1/-1;"><label style="font-size:12px;font-weight:700;">Candidate Count Display <span style="font-weight:400;color:var(--text2);">(leave blank to hide — only show a verified number)</span></label><input id="cfgCandDisplay" value="${esc(cfg.candidate_count_display||'')}"></div>
+        <div style="grid-column:1/-1;"><label style="font-size:12px;font-weight:700;">Trust Statement <span style="font-weight:400;color:var(--text2);">(e.g. "Used by X students" — leave blank unless verified)</span></label><input id="cfgTrust" value="${esc(cfg.trust_statement||'')}"></div>
+        <div style="grid-column:1/-1;"><label style="font-size:12px;font-weight:700;">Active Dataset Note</label><input id="cfgDatasetNote" value="${esc(cfg.active_dataset_note||'')}"></div>
+        <div style="grid-column:1/-1;"><label style="font-size:12px;font-weight:700;">Page Subtitle</label><input id="cfgSubtitle" value="${esc(cfg.page_subtitle||'')}"></div>
+        <div style="grid-column:1/-1;"><label style="font-size:12px;font-weight:700;">Disclaimer</label><textarea id="cfgDisclaimer" rows="3" style="width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);">${esc(cfg.disclaimer||'')}</textarea></div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;"><input type="checkbox" id="cfgStatsVisible" ${cfg.stats_visible?'checked':''}> Show stat pills</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;"><input type="checkbox" id="cfgCollegeCTA" ${cfg.college_predictor_cta_visible?'checked':''}> Show "Explore Colleges" CTA</label>
+      </div>
+      <button class="btn btn-primary" id="cfgSaveBtn" style="margin-top:18px;">Save Config</button>
+    </div>
+  `;
+  $('#cfgSaveBtn').onclick=async()=>{
+    const payload = {
+      exam_year: parseInt($('#cfgExamYear').value)||cfg.exam_year,
+      exam_date: $('#cfgExamDate').value || null,
+      total_questions: parseInt($('#cfgTotalQ').value)||cfg.total_questions,
+      maximum_score: parseFloat($('#cfgMaxScore').value)||cfg.maximum_score,
+      marks_per_correct: parseFloat($('#cfgMarksCorrect').value),
+      negative_marks: parseFloat($('#cfgNegMarks').value),
+      candidate_count_display: $('#cfgCandDisplay').value||null,
+      trust_statement: $('#cfgTrust').value||null,
+      active_dataset_note: $('#cfgDatasetNote').value||null,
+      page_subtitle: $('#cfgSubtitle').value,
+      disclaimer: $('#cfgDisclaimer').value,
+      stats_visible: $('#cfgStatsVisible').checked,
+      college_predictor_cta_visible: $('#cfgCollegeCTA').checked,
+    };
+    const { error } = await sb.rpc('admin_neetpg_update_config', {p_config: payload});
+    if(error){ toast('Could not save: '+error.message,'err'); return; }
+    toast('Config saved','ok');
+  };
+}
+
+async function rpAdminDataTab(root){
+  const filters = S.rpDataFilters || (S.rpDataFilters = {});
+  if(!S.rpDataSelected) S.rpDataSelected = new Set();
+  const { data: rows, error } = await sb.rpc('admin_neetpg_list_dataset', {
+    p_year: filters.year||null, p_source: filters.source||null,
+    p_verification_status: filters.status||null, p_is_active: filters.active==null? null : filters.active,
+  });
+  if(error){ root.innerHTML = `<div class="empty-state">Could not load dataset: ${esc(error.message)}</div>`; return; }
+  const list = rows?.data || [];
+  const selCount = S.rpDataSelected.size;
+  root.innerHTML = `
+    <div class="table-toolbar">
+      <input id="rpFilterYear" placeholder="Filter by year" style="max-width:120px;" value="${filters.year||''}">
+      <input id="rpFilterSource" placeholder="Filter by source" style="max-width:180px;" value="${filters.source||''}">
+      <select id="rpFilterStatus" style="max-width:160px;">
+        <option value="">All statuses</option>
+        <option value="unverified" ${filters.status==='unverified'?'selected':''}>Unverified</option>
+        <option value="verified" ${filters.status==='verified'?'selected':''}>Verified</option>
+        <option value="rejected" ${filters.status==='rejected'?'selected':''}>Rejected</option>
+      </select>
+      <button class="btn btn-primary btn-sm" id="rpImportBtn">⬆ Import CSV</button>
+    </div>
+    ${selCount? `<div class="lock-banner" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+      <span>${selCount} row(s) selected</span>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-primary btn-sm" id="rpBulkVerifyBtn">✓ Verify selected</button>
+        <button class="btn btn-primary btn-sm" id="rpBulkActivateBtn">▶ Verify + Activate selected</button>
+        <button class="btn btn-danger btn-sm" id="rpBulkDeleteBtn">🗑 Delete selected</button>
+        <button class="btn btn-ghost btn-sm" id="rpClearSelBtn">Clear selection</button>
+      </div>
+    </div>` : ''}
+    <div class="table-wrap"><table>
+      <thead><tr><th style="width:36px;"><input type="checkbox" id="rpSelAll" ${list.length && list.every(d=>S.rpDataSelected.has(d.id))?'checked':''}></th><th>Year</th><th>Score Range</th><th>Normalized</th><th>Rank Range</th><th>Candidates</th><th>Source</th><th>Confidence</th><th>Status</th><th>Active</th><th></th></tr></thead>
+      <tbody>
+        ${list.length? list.map(d=>`
+          <tr>
+            <td><input type="checkbox" class="rpRowChk" data-id="${d.id}" ${S.rpDataSelected.has(d.id)?'checked':''}></td>
+            <td><b>${d.year}</b></td>
+            <td>${d.original_score_min}–${d.original_score_max} / ${d.original_max_score}</td>
+            <td>${d.normalized_score_min}–${d.normalized_score_max}</td>
+            <td>${Number(d.rank_min).toLocaleString('en-IN')}–${Number(d.rank_max).toLocaleString('en-IN')}</td>
+            <td>${d.candidate_count? Number(d.candidate_count).toLocaleString('en-IN'):'—'}</td>
+            <td style="max-width:160px;font-size:12px;">${esc(d.source_name||'')}</td>
+            <td><span class="badge ${String(d.confidence).toLowerCase()==='high'?'badge-success':String(d.confidence).toLowerCase()==='low'?'badge-danger':'badge-grey'}">${esc(d.confidence)}</span></td>
+            <td><span class="badge ${d.verification_status==='verified'?'badge-success':d.verification_status==='rejected'?'badge-danger':'badge-grey'}">${esc(d.verification_status)}</span></td>
+            <td>${d.is_active? '<span class="badge badge-blue">Active</span>' : '<span style="color:var(--text2);font-size:12px;">—</span>'}</td>
+            <td><div style="display:flex;gap:6px;flex-wrap:wrap;">
+              ${d.verification_status!=='verified'? `<button class="btn btn-sm btn-outline" data-verify="${d.id}">Verify</button>`:''}
+              ${d.verification_status==='verified'? `<button class="btn btn-sm ${d.is_active?'btn-outline':'btn-primary'}" data-toggleactive="${d.id}" data-active="${d.is_active}">${d.is_active?'Deactivate':'Activate'}</button>`:''}
+              <button class="btn btn-sm btn-danger" data-delete="${d.id}">Delete</button>
+            </div></td>
+          </tr>`).join('') : `<tr><td colspan="11"><div class="empty-state">No historical data imported yet. Use <b>Import CSV</b> — nothing is fabricated here; the predictor will show "insufficient data" until real, verified rows are added and activated.</div></td></tr>`}
+      </tbody>
+    </table></div>
+  `;
+  $('#rpFilterYear').onchange=e=>{ filters.year = e.target.value?parseInt(e.target.value):null; rpAdminDataTab(root); };
+  $('#rpFilterSource').onchange=e=>{ filters.source = e.target.value||null; rpAdminDataTab(root); };
+  $('#rpFilterStatus').onchange=e=>{ filters.status = e.target.value||null; rpAdminDataTab(root); };
+  $('#rpImportBtn').onclick=()=>openRpImportModal(root);
+  const selAll = $('#rpSelAll');
+  if(selAll) selAll.onchange=(e)=>{
+    list.forEach(d=> e.target.checked? S.rpDataSelected.add(d.id) : S.rpDataSelected.delete(d.id));
+    rpAdminDataTab(root);
+  };
+  $$('.rpRowChk').forEach(chk=>{
+    chk.onchange=()=>{ chk.checked? S.rpDataSelected.add(chk.dataset.id) : S.rpDataSelected.delete(chk.dataset.id); rpAdminDataTab(root); };
+  });
+  const clearSelBtn = $('#rpClearSelBtn'); if(clearSelBtn) clearSelBtn.onclick=()=>{ S.rpDataSelected.clear(); rpAdminDataTab(root); };
+
+  async function bulkAction(ids, {verify, activate}, label){
+    const ids2 = Array.from(ids);
+    toast(`${label} ${ids2.length} row(s)…`,'');
+    let done=0, failed=0;
+    for(const id of ids2){
+      if(verify){
+        const { error } = await sb.rpc('admin_neetpg_verify_dataset_row', {p_id:id, p_approved:true});
+        if(error){ failed++; continue; }
+      }
+      if(activate){
+        const { error } = await sb.rpc('admin_neetpg_set_dataset_row_active', {p_id:id, p_active:true});
+        if(error){ failed++; continue; }
+      }
+      done++;
+    }
+    S.rpDataSelected.clear();
+    toast(`${done} row(s) updated${failed?`, ${failed} failed`:''}`, failed? 'err':'ok');
+    rpAdminDataTab(root);
+  }
+  const bulkVerifyBtn = $('#rpBulkVerifyBtn');
+  if(bulkVerifyBtn) bulkVerifyBtn.onclick=()=>{
+    confirmModal(`Mark ${S.rpDataSelected.size} selected row(s) as verified? Only do this after you've reviewed their source.`, ()=>{
+      bulkAction(S.rpDataSelected, {verify:true, activate:false}, 'Verifying');
+    }, {title:'Bulk verify', okLabel:'Verify', danger:false});
+  };
+  const bulkActivateBtn = $('#rpBulkActivateBtn');
+  if(bulkActivateBtn) bulkActivateBtn.onclick=()=>{
+    confirmModal(`Mark ${S.rpDataSelected.size} selected row(s) as verified AND activate them for live predictions? Only do this after you've reviewed their source.`, ()=>{
+      bulkAction(S.rpDataSelected, {verify:true, activate:true}, 'Activating');
+    }, {title:'Bulk verify + activate', okLabel:'Verify + Activate', danger:false});
+  };
+  const bulkDeleteBtn = $('#rpBulkDeleteBtn');
+  if(bulkDeleteBtn) bulkDeleteBtn.onclick=()=>{
+    confirmModal(`Permanently delete ${S.rpDataSelected.size} selected row(s)? This cannot be undone.`, async()=>{
+      const ids2 = Array.from(S.rpDataSelected);
+      toast(`Deleting ${ids2.length} row(s)…`,'');
+      let done=0, failed=0;
+      for(const id of ids2){
+        const { error } = await sb.rpc('admin_neetpg_delete_dataset_row', {p_id:id, p_confirm:true});
+        if(error){ failed++; continue; }
+        done++;
+      }
+      S.rpDataSelected.clear();
+      toast(`${done} row(s) deleted${failed?`, ${failed} failed`:''}`, failed? 'err':'ok');
+      rpAdminDataTab(root);
+    }, {title:'Delete selected rows', okLabel:'Delete', danger:true});
+  };
+  $$('[data-verify]').forEach(b=>b.onclick=async()=>{
+    const { error } = await sb.rpc('admin_neetpg_verify_dataset_row', {p_id:b.dataset.verify, p_approved:true});
+    if(error){ toast('Could not verify: '+error.message,'err'); return; }
+    toast('Row verified','ok'); rpAdminDataTab(root);
+  });
+  $$('[data-toggleactive]').forEach(b=>b.onclick=async()=>{
+    const nowActive = b.dataset.active==='true';
+    const { error } = await sb.rpc('admin_neetpg_set_dataset_row_active', {p_id:b.dataset.toggleactive, p_active: !nowActive});
+    if(error){ toast('Could not update: '+error.message,'err'); return; }
+    toast(nowActive?'Deactivated':'Activated','ok'); rpAdminDataTab(root);
+  });
+  $$('[data-delete]').forEach(b=>b.onclick=()=>{
+    confirmModal('Permanently delete this dataset row? This cannot be undone.', async()=>{
+      const { error } = await sb.rpc('admin_neetpg_delete_dataset_row', {p_id:b.dataset.delete, p_confirm:true});
+      if(error){ toast('Could not delete: '+error.message,'err'); return; }
+      toast('Deleted','ok'); rpAdminDataTab(root);
+    }, {title:'Delete dataset row', okLabel:'Delete', danger:true});
+  });
+}
+
+function openRpImportModal(refreshRoot){
+  openModal('Import Historical Data (CSV)', `
+    <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">
+      Columns expected: year, original_score_min, original_score_max, original_max_score,
+      normalized_score_min, normalized_score_max, rank_min, rank_max, candidate_count,
+      source_name, source_url, normalization_method, normalization_notes, confidence, verification_status.
+      Imported rows always land as <b>unverified + inactive</b> — verify and activate them from the table after import.
+    </p>
+    <input type="file" id="rpCsvFile" accept=".csv">
+    <div id="rpCsvPreview" style="margin-top:14px;"></div>
+  `, 640);
+  $('#rpCsvFile').onchange=async(e)=>{
+    const file = e.target.files[0]; if(!file) return;
+    const text = await file.text();
+    const { rows } = parseCSV(text);
+    if(!rows.length){ $('#rpCsvPreview').innerHTML = `<div class="empty-state">No rows found in this file.</div>`; return; }
+    $('#rpCsvPreview').innerHTML = `<div class="empty-state">Validating ${rows.length} row(s)…</div>`;
+    const { data: val, error } = await sb.rpc('admin_neetpg_validate_dataset', {p_rows: rows});
+    if(error){ $('#rpCsvPreview').innerHTML = `<div class="empty-state">Validation failed: ${esc(error.message)}</div>`; return; }
+    $('#rpCsvPreview').innerHTML = `
+      <div class="lock-banner" style="background:${val.can_import?'var(--success-bg)':'var(--error-bg)'};">
+        ${val.total_rows} row(s) · ${val.error_count} error(s) · ${val.warning_count} warning(s)
+      </div>
+      ${val.errors.length? `<div style="max-height:160px;overflow:auto;margin-top:10px;font-size:12.5px;">
+        ${val.errors.map(e=>`<div style="color:var(--error);">Row ${e.row}: ${esc(e.issues.join(', '))}</div>`).join('')}
+      </div>`:''}
+      ${val.warnings.length? `<div style="max-height:160px;overflow:auto;margin-top:10px;font-size:12.5px;color:var(--warning);">
+        ${val.warnings.map(w=>`<div>Row ${w.row}: ${esc(w.issues.join(', '))}</div>`).join('')}
+      </div>`:''}
+      <button class="btn btn-primary" id="rpConfirmImportBtn" style="margin-top:14px;" ${val.can_import?'':'disabled'}>
+        ${val.can_import? `Confirm Import (${val.total_rows} rows)` : 'Fix errors before importing'}
+      </button>
+    `;
+    const confirmBtn = $('#rpConfirmImportBtn');
+    if(confirmBtn && val.can_import){
+      confirmBtn.onclick=async()=>{
+        confirmBtn.disabled=true; confirmBtn.textContent='Importing…';
+        const { data: imp, error: impErr } = await sb.rpc('admin_neetpg_import_dataset', {p_rows: rows, p_source_name: file.name});
+        if(impErr){ toast('Import failed: '+impErr.message,'err'); confirmBtn.disabled=false; return; }
+        toast(`Imported ${imp.inserted} row(s) — remember to verify + activate them`,'ok');
+        closeModal();
+        rpAdminDataTab(refreshRoot);
+      };
+    }
+  };
+}
+
+async function rpAdminSpecialtyTab(root){
+  if(!S.rpSpecSelected) S.rpSpecSelected = new Set();
+  const { data: rows, error } = await sb.rpc('admin_neetpg_list_specialty_cutoffs', {});
+  if(error){ root.innerHTML = `<div class="empty-state">Could not load specialty cutoffs: ${esc(error.message)}</div>`; return; }
+  const list = rows?.data || [];
+  const selCount = S.rpSpecSelected.size;
+  root.innerHTML = `
+    <div class="table-toolbar">
+      <button class="btn btn-primary btn-sm" id="rpSpecImportBtn">⬆ Import CSV</button>
+    </div>
+    ${selCount? `<div class="lock-banner" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+      <span>${selCount} row(s) selected</span>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-primary btn-sm" id="rpSpecBulkVerifyBtn">✓ Verify selected</button>
+        <button class="btn btn-primary btn-sm" id="rpSpecBulkActivateBtn">▶ Verify + Activate selected</button>
+        <button class="btn btn-ghost btn-sm" id="rpSpecClearSelBtn">Clear selection</button>
+      </div>
+    </div>` : ''}
+    <div class="table-wrap"><table>
+      <thead><tr><th style="width:36px;"><input type="checkbox" id="rpSpecSelAll" ${list.length && list.every(d=>S.rpSpecSelected.has(d.id))?'checked':''}></th><th>Specialty</th><th>Year</th><th>Round</th><th>Category</th><th>Closing Rank</th><th>Source</th><th>Status</th><th>Active</th><th></th></tr></thead>
+      <tbody>
+        ${list.length? list.map(d=>`
+          <tr>
+            <td><input type="checkbox" class="rpSpecRowChk" data-id="${d.id}" ${S.rpSpecSelected.has(d.id)?'checked':''}></td>
+            <td><b>${esc(d.specialty)}</b></td>
+            <td>${d.year}</td>
+            <td>${esc(d.round)}</td>
+            <td>${esc(d.category)}</td>
+            <td>${Number(d.closing_rank).toLocaleString('en-IN')}</td>
+            <td style="max-width:160px;font-size:12px;">${esc(d.source_name||'')}</td>
+            <td><span class="badge ${d.verification_status==='verified'?'badge-success':d.verification_status==='rejected'?'badge-danger':'badge-grey'}">${esc(d.verification_status)}</span></td>
+            <td>${d.is_active? '<span class="badge badge-blue">Active</span>' : '<span style="color:var(--text2);font-size:12px;">—</span>'}</td>
+            <td><div style="display:flex;gap:6px;flex-wrap:wrap;">
+              ${d.verification_status!=='verified'? `<button class="btn btn-sm btn-outline" data-vspec="${d.id}">Verify</button>`:''}
+              ${d.verification_status==='verified'? `<button class="btn btn-sm ${d.is_active?'btn-outline':'btn-primary'}" data-togspec="${d.id}" data-active="${d.is_active}">${d.is_active?'Deactivate':'Activate'}</button>`:''}
+              <button class="btn btn-sm btn-danger" data-delspec="${d.id}">Delete</button>
+            </div></td>
+          </tr>`).join('') : `<tr><td colspan="10"><div class="empty-state">No specialty closing-rank data yet — nothing is shown to students on the specialty table until real, verified data is imported and activated.</div></td></tr>`}
+      </tbody>
+    </table></div>
+  `;
+  $('#rpSpecImportBtn').onclick=()=>openRpSpecialtyImportModal(root);
+  const selAll = $('#rpSpecSelAll');
+  if(selAll) selAll.onchange=(e)=>{
+    list.forEach(d=> e.target.checked? S.rpSpecSelected.add(d.id) : S.rpSpecSelected.delete(d.id));
+    rpAdminSpecialtyTab(root);
+  };
+  $$('.rpSpecRowChk').forEach(chk=>{
+    chk.onchange=()=>{ chk.checked? S.rpSpecSelected.add(chk.dataset.id) : S.rpSpecSelected.delete(chk.dataset.id); rpAdminSpecialtyTab(root); };
+  });
+  const clearSelBtn = $('#rpSpecClearSelBtn'); if(clearSelBtn) clearSelBtn.onclick=()=>{ S.rpSpecSelected.clear(); rpAdminSpecialtyTab(root); };
+
+  async function bulkSpecAction(ids, {verify, activate}, label){
+    const ids2 = Array.from(ids);
+    toast(`${label} ${ids2.length} row(s)…`,'');
+    let done=0, failed=0;
+    for(const id of ids2){
+      if(verify){
+        const { error } = await sb.rpc('admin_neetpg_verify_specialty_row', {p_id:id, p_approved:true});
+        if(error){ failed++; continue; }
+      }
+      if(activate){
+        const { error } = await sb.rpc('admin_neetpg_set_specialty_row_active', {p_id:id, p_active:true});
+        if(error){ failed++; continue; }
+      }
+      done++;
+    }
+    S.rpSpecSelected.clear();
+    toast(`${done} row(s) updated${failed?`, ${failed} failed`:''}`, failed? 'err':'ok');
+    rpAdminSpecialtyTab(root);
+  }
+  const bulkVerifyBtn = $('#rpSpecBulkVerifyBtn');
+  if(bulkVerifyBtn) bulkVerifyBtn.onclick=()=>{
+    confirmModal(`Mark ${S.rpSpecSelected.size} selected row(s) as verified? Only do this after you've reviewed their source.`, ()=>{
+      bulkSpecAction(S.rpSpecSelected, {verify:true, activate:false}, 'Verifying');
+    }, {title:'Bulk verify', okLabel:'Verify', danger:false});
+  };
+  const bulkActivateBtn = $('#rpSpecBulkActivateBtn');
+  if(bulkActivateBtn) bulkActivateBtn.onclick=()=>{
+    confirmModal(`Mark ${S.rpSpecSelected.size} selected row(s) as verified AND activate them for live predictions? Only do this after you've reviewed their source.`, ()=>{
+      bulkSpecAction(S.rpSpecSelected, {verify:true, activate:true}, 'Activating');
+    }, {title:'Bulk verify + activate', okLabel:'Verify + Activate', danger:false});
+  };
+  $$('[data-vspec]').forEach(b=>b.onclick=async()=>{
+    const { error } = await sb.rpc('admin_neetpg_verify_specialty_row', {p_id:b.dataset.vspec, p_approved:true});
+    if(error){ toast('Could not verify: '+error.message,'err'); return; }
+    toast('Verified','ok'); rpAdminSpecialtyTab(root);
+  });
+  $$('[data-togspec]').forEach(b=>b.onclick=async()=>{
+    const nowActive = b.dataset.active==='true';
+    const { error } = await sb.rpc('admin_neetpg_set_specialty_row_active', {p_id:b.dataset.togspec, p_active: !nowActive});
+    if(error){ toast('Could not update: '+error.message,'err'); return; }
+    toast(nowActive?'Deactivated':'Activated','ok'); rpAdminSpecialtyTab(root);
+  });
+  $$('[data-delspec]').forEach(b=>b.onclick=()=>{
+    confirmModal('Permanently delete this row?', async()=>{
+      const { error } = await sb.rpc('admin_neetpg_delete_specialty_row', {p_id:b.dataset.delspec, p_confirm:true});
+      if(error){ toast('Could not delete: '+error.message,'err'); return; }
+      toast('Deleted','ok'); rpAdminSpecialtyTab(root);
+    }, {title:'Delete row', okLabel:'Delete', danger:true});
+  });
+}
+
+function openRpSpecialtyImportModal(refreshRoot){
+  openModal('Import Specialty Closing Ranks (CSV)', `
+    <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">
+      Columns expected: specialty, year, round, quota, category, closing_rank, source_name, source_url, confidence, verification_status.
+      Imported rows always land as <b>unverified + inactive</b>.
+    </p>
+    <input type="file" id="rpSpecCsvFile" accept=".csv">
+    <div id="rpSpecCsvPreview" style="margin-top:14px;"></div>
+  `, 640);
+  $('#rpSpecCsvFile').onchange=async(e)=>{
+    const file = e.target.files[0]; if(!file) return;
+    const text = await file.text();
+    const { rows } = parseCSV(text);
+    if(!rows.length){ $('#rpSpecCsvPreview').innerHTML = `<div class="empty-state">No rows found in this file.</div>`; return; }
+    $('#rpSpecCsvPreview').innerHTML = `<div class="empty-state">Validating ${rows.length} row(s)…</div>`;
+    const { data: val, error } = await sb.rpc('admin_neetpg_validate_specialty_cutoffs', {p_rows: rows});
+    if(error){ $('#rpSpecCsvPreview').innerHTML = `<div class="empty-state">Validation failed: ${esc(error.message)}</div>`; return; }
+    $('#rpSpecCsvPreview').innerHTML = `
+      <div class="lock-banner" style="background:${val.can_import?'var(--success-bg)':'var(--error-bg)'};">
+        ${val.total_rows} row(s) · ${val.error_count} error(s) · ${val.warning_count} warning(s)
+      </div>
+      ${val.errors.length? `<div style="max-height:160px;overflow:auto;margin-top:10px;font-size:12.5px;">
+        ${val.errors.map(e=>`<div style="color:var(--error);">Row ${e.row}: ${esc(e.issues.join(', '))}</div>`).join('')}
+      </div>`:''}
+      <button class="btn btn-primary" id="rpSpecConfirmImportBtn" style="margin-top:14px;" ${val.can_import?'':'disabled'}>
+        ${val.can_import? `Confirm Import (${val.total_rows} rows)` : 'Fix errors before importing'}
+      </button>
+    `;
+    const confirmBtn = $('#rpSpecConfirmImportBtn');
+    if(confirmBtn && val.can_import){
+      confirmBtn.onclick=async()=>{
+        confirmBtn.disabled=true; confirmBtn.textContent='Importing…';
+        const { data: imp, error: impErr } = await sb.rpc('admin_neetpg_import_specialty_cutoffs', {p_rows: rows, p_source_name: file.name});
+        if(impErr){ toast('Import failed: '+impErr.message,'err'); confirmBtn.disabled=false; return; }
+        toast(`Imported ${imp.inserted} row(s) — remember to verify + activate them`,'ok');
+        closeModal();
+        rpAdminSpecialtyTab(refreshRoot);
+      };
+    }
+  };
+}
+
+async function rpAdminModelsTab(root){
+  const { data, error } = await sb.rpc('admin_neetpg_list_model_versions');
+  if(error){ root.innerHTML = `<div class="empty-state">Could not load models: ${esc(error.message)}</div>`; return; }
+  const models = data?.data || [];
+  root.innerHTML = `
+    <div class="card" style="padding:20px;margin-bottom:16px;max-width:640px;">
+      <h3 style="font-size:15px;margin-bottom:12px;">Create Model Version</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div><label style="font-size:12px;font-weight:700;">Version</label><input id="mvVersion" placeholder="v1.1"></div>
+        <div><label style="font-size:12px;font-weight:700;">Data Version</label><input id="mvDataVersion" placeholder="2026.02"></div>
+        <div style="grid-column:1/-1;"><label style="font-size:12px;font-weight:700;">Years Used <span style="font-weight:400;color:var(--text2);">(comma-separated, only verified years)</span></label><input id="mvYears" placeholder="2022,2023,2024,2025"></div>
+        <div style="grid-column:1/-1;"><label style="font-size:12px;font-weight:700;">Description</label><input id="mvDesc"></div>
+      </div>
+      <button class="btn btn-primary" id="mvCreateBtn" style="margin-top:12px;">Create</button>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Version</th><th>Years Used</th><th>Data Version</th><th>Status</th><th>Created</th><th></th></tr></thead>
+      <tbody>
+        ${models.length? models.map(m=>`
+          <tr>
+            <td><b>${esc(m.version)}</b><br><span style="font-size:11.5px;color:var(--text2);">${esc(m.description||'')}</span></td>
+            <td>${(m.years_used||[]).join(', ')||'—'}</td>
+            <td>${esc(m.data_version||'—')}</td>
+            <td>${m.is_active? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-grey">Inactive</span>'}</td>
+            <td style="font-size:12px;">${new Date(m.created_at).toLocaleDateString('en-IN')}</td>
+            <td>${!m.is_active? `<button class="btn btn-sm btn-primary" data-activate="${m.id}">Activate</button>`:''}</td>
+          </tr>`).join('') : `<tr><td colspan="6"><div class="empty-state">No model versions yet — create one above (it can have an empty years list until you have verified data).</div></td></tr>`}
+      </tbody>
+    </table></div>
+  `;
+  $('#mvCreateBtn').onclick=async()=>{
+    const version = $('#mvVersion').value.trim();
+    if(!version){ toast('Version is required','err'); return; }
+    const years = $('#mvYears').value.split(',').map(s=>parseInt(s.trim())).filter(Boolean);
+    const { error } = await sb.rpc('admin_neetpg_create_model_version', {
+      p_version: version, p_description: $('#mvDesc').value||null, p_years_used: years, p_data_version: $('#mvDataVersion').value||null,
+    });
+    if(error){ toast('Could not create: '+error.message,'err'); return; }
+    toast('Model version created','ok'); rpAdminModelsTab(root);
+  };
+  $$('[data-activate]').forEach(b=>b.onclick=async()=>{
+    const { error } = await sb.rpc('admin_neetpg_activate_model', {p_id: b.dataset.activate});
+    if(error){ toast('Could not activate: '+error.message,'err'); return; }
+    toast('Model activated','ok'); rpAdminModelsTab(root);
+  });
+}
+
+async function rpAdminLogsTab(root){
+  const { data, error } = await sb.rpc('admin_neetpg_list_prediction_logs', {p_limit: 200});
+  if(error){ root.innerHTML = `<div class="empty-state">Could not load logs: ${esc(error.message)}</div>`; return; }
+  const logs = data?.data || [];
+  root.innerHTML = `
+    <div class="table-wrap"><table>
+      <thead><tr><th>When</th><th>Score</th><th>Category</th><th>AIR Range</th><th>Confidence</th><th>Result</th><th>Model</th></tr></thead>
+      <tbody>
+        ${logs.length? logs.map(l=>`
+          <tr>
+            <td style="font-size:12px;">${new Date(l.created_at).toLocaleString('en-IN')}</td>
+            <td>${l.score}</td>
+            <td>${esc(l.category||'—')}</td>
+            <td>${l.air_min? Number(l.air_min).toLocaleString('en-IN')+'–'+Number(l.air_max).toLocaleString('en-IN') : '—'}</td>
+            <td>${esc(l.confidence||'—')}</td>
+            <td><span class="badge ${l.result_code==='ok'?'badge-success':l.result_code==='low_confidence'?'badge-grey':'badge-danger'}">${esc(l.result_code)}</span></td>
+            <td style="font-size:12px;">${esc(l.model_version||'—')}</td>
+          </tr>`).join('') : `<tr><td colspan="7"><div class="empty-state">No predictions logged yet.</div></td></tr>`}
+      </tbody>
+    </table></div>
+  `;
+}
+
+// =========================================================================
 // STUDENT SHELL
 // =========================================================================
 function renderStudentShell(app){
   if(S.studentPage==='exam') return renderExamEngine(app);
+  const nameParts = (S.currentUser.name||'').trim().split(/\s+/);
+  const initials = ((nameParts[0]?.[0]||'')+(nameParts[1]?.[0]||'')).toUpperCase() || 'S';
   app.innerHTML = `
     <div class="stu-header">
-      <div class="brand">FMGs NEVER GIVE UP <span>| NATIONAL TEST SERIES</span></div>
-      <div style="display:flex;align-items:center;gap:14px;">
-        <span style="font-size:13px;">${esc(S.currentUser.name)} <span style="color:#9FB3D6">(${S.currentUser.studentId})</span></span>
-        <button class="btn btn-ghost btn-sm" style="color:#fff;" id="stuLogout">Log out</button>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="login-logo-icon" style="width:34px;height:34px;font-size:15px;">🎓</div>
+        <div class="brand" style="font-size:15px;">FMGs NEVER GIVE UP</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="stu-avatar">${initials}</div>
+        <div style="text-align:right;line-height:1.3;">
+          <div style="font-size:13px;font-weight:700;color:#fff;">${esc(S.currentUser.name)}</div>
+          <div style="font-size:11.5px;color:#9FB3D6;">${esc(S.currentUser.studentId)}</div>
+        </div>
+        <button class="stu-logout-btn" data-theme-toggle onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
+        <button class="stu-logout-btn" id="stuLogout" title="Log out">↪</button>
       </div>
     </div>
     <div class="stu-shell" id="stuContent"></div>
   `;
+  updateThemeToggleIcons();
   $('#stuLogout').onclick=doLogout;
   renderStudentPage($('#stuContent'));
 }
 async function renderStudentPage(root){
   const page = S.studentPage||'dashboard';
+  if(page!=='analytics') unmountMedMindFab();
   if(page==='dashboard') return studentDashboard(root);
   if(page==='instructions') return studentInstructionsPage(root);
   if(page==='result') return studentResult(root);
   if(page==='review') return studentReview(root);
   if(page==='analytics') return studentAnalytics(root);
   if(page==='errorbook') return studentErrorBook(root);
+  if(page==='rankpredictor') return studentRankPredictor(root);
 }
 async function studentErrorBook(root){
   root.innerHTML = `<div class="empty-state">Loading your error book…</div>`;
@@ -2548,8 +3279,10 @@ async function studentErrorBook(root){
 
   root.innerHTML = `
     <button class="btn btn-ghost btn-sm" style="margin-bottom:14px;" onclick="S.studentPage='dashboard';render();">← Back to Dashboard</button>
-    <h2 style="font-size:20px;margin-bottom:6px;">Error Book</h2>
-    <p style="font-size:13.5px;color:var(--text2);margin-bottom:16px;">Every question you've gotten wrong across all your tests, in one place — practice these until they're second nature.</p>
+    <div class="dash-section-head fade-in-up">
+      <div><span class="dash-eyebrow">LEARN FROM MISSES</span><h3>Error Book</h3><p style="font-size:13px;color:var(--text2);margin-top:4px;">Every question you've gotten wrong across all your tests, in one place — practice these until they're second nature.</p></div>
+      ${all.length? `<span class="badge badge-error" style="font-size:12.5px;padding:6px 12px;">${all.length} to review</span>`:''}
+    </div>
     ${all.length? `
     <div class="table-toolbar" style="margin-bottom:14px;">
       <select id="ebSubjFilter">
@@ -2583,17 +3316,28 @@ async function studentErrorBook(root){
 }
 async function studentAnalytics(root){
   root.innerHTML = `<div class="empty-state">Loading your analytics…</div>`;
-  const { data, error } = await sb.rpc('student_get_analytics', {p_token: S.studentToken});
+  if(!S.analyticsExam) S.analyticsExam = 'FMGE';
+  const { data, error } = await sb.rpc('student_get_analytics', {p_token: S.studentToken, p_exam_code: S.analyticsExam});
   if(error){ root.innerHTML = `<div class="empty-state">Could not load analytics: ${esc(error.message)}</div>`; return; }
+  mountMedMindFab();
 
   const o = data.overall || {};
   const trend = data.attempts_trend || [];
   const subj = data.subject_performance || [];
 
+  const examTabsHtml = `
+    <div class="tabbar" style="margin-bottom:16px;">
+      <button class="tabbtn ${S.analyticsExam==='FMGE'?'active':''}" data-examtab="FMGE">FMGE</button>
+      <button class="tabbtn ${S.analyticsExam==='NEET_PG'?'active':''}" data-examtab="NEET_PG">NEET PG</button>
+    </div>`;
+
   if(!trend.length){
     root.innerHTML = `
       <button class="btn btn-ghost btn-sm" style="margin-bottom:14px;" onclick="S.studentPage='dashboard';render();">← Back to Dashboard</button>
-      <div class="empty-state">Submit at least one test to see your analytics here.</div>`;
+      <div class="dash-section-head fade-in-up"><div><span class="dash-eyebrow">PERFORMANCE OVER TIME</span><h3>My Analytics</h3></div></div>
+      ${examTabsHtml}
+      <div class="empty-state">Submit at least one ${S.analyticsExam==='FMGE'?'FMGE':'NEET PG'} test to see analytics here.</div>`;
+    $$('[data-examtab]').forEach(b=>b.onclick=()=>{ S.analyticsExam=b.dataset.examtab; studentAnalytics(root); });
     return;
   }
 
@@ -2602,47 +3346,48 @@ async function studentAnalytics(root){
 
   root.innerHTML = `
     <button class="btn btn-ghost btn-sm" style="margin-bottom:14px;" onclick="S.studentPage='dashboard';render();">← Back to Dashboard</button>
-    <h2 style="font-size:20px;margin-bottom:16px;">My Analytics</h2>
-    <div class="grid-cards" style="margin-bottom:18px;">
-      <div class="stat-card"><div class="lbl">Tests Taken</div><div class="val">${o.total_tests}</div></div>
-      <div class="stat-card"><div class="lbl">Average Score</div><div class="val">${o.avg_score}</div></div>
-      <div class="stat-card"><div class="lbl">Average Accuracy</div><div class="val">${o.avg_accuracy}%</div></div>
-      <div class="stat-card"><div class="lbl">Best Score</div><div class="val" style="color:var(--success)">${o.best_score}</div></div>
+    <div class="dash-section-head fade-in-up"><div><span class="dash-eyebrow">PERFORMANCE OVER TIME</span><h3>My Analytics</h3></div></div>
+    ${examTabsHtml}
+    <div class="dash-stats fade-in-up" style="animation-delay:.06s;">
+      <div class="dash-stat"><div class="dash-stat-icon" style="background:#EFF6FF;">📝</div><div><b>${o.total_tests}</b><span>Tests Taken</span></div></div>
+      <div class="dash-stat"><div class="dash-stat-icon" style="background:#FFFAEB;">📊</div><div><b>${o.avg_score}</b><span>Average Score</span></div></div>
+      <div class="dash-stat"><div class="dash-stat-icon" style="background:#F0F2F7;">🎯</div><div><b>${o.avg_accuracy}%</b><span>Average Accuracy</span></div></div>
+      <div class="dash-stat"><div class="dash-stat-icon" style="background:#ECFDF3;">🏆</div><div><b style="color:var(--success)">${o.best_score}</b><span>Best Score</span></div></div>
     </div>
 
-    <div class="card pad" style="margin-bottom:18px;">
-      <h4 style="font-size:15px;margin-bottom:12px;">Score trend over time</h4>
-      <div class="svg-chart-wrap">${svgBarChart(trend.map(t=>({label:new Date(t.submitted_at).toLocaleDateString('en-IN',{day:'2-digit',month:'short'}), value:Number(t.score)})), {color:'#155EEF'})}</div>
+    <div class="card pad fade-in-up" style="margin-bottom:18px;animation-delay:.12s;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <div class="dash-stat-icon" style="background:#FEE9EC;">📈</div>
+        <div><h4 style="font-size:15px;margin:0;">Overall performance breakdown</h4><p style="font-size:11.5px;color:var(--text2);margin:0;">Across all your submitted tests</p></div>
+      </div>
+      ${svgDonutChart([
+        {label:'Correct', value: subj.reduce((a,s)=>a+s.correct,0), color:'var(--success)'},
+        {label:'Wrong', value: subj.reduce((a,s)=>a+s.wrong,0), color:'var(--error)'},
+        {label:'Not Attempted', value: subj.reduce((a,s)=>a+s.dnp,0), color:'var(--text3)'},
+      ], {centerLabel: o.avg_accuracy+'%', centerSub:'avg accuracy'})}
     </div>
 
     ${subj.length? `<div class="card pad" style="margin-bottom:18px;">
-      <h4 style="font-size:15px;margin-bottom:4px;">Subject-wise performance (all tests combined)</h4>
-      <div class="svg-chart-wrap" style="max-height:400px;overflow-y:auto;">${svgHorizontalBarChart(subj.map(s=>({label:s.subject, value:s.correct_pct, suffix:'%'})), {color:'#F59E0B', max:100})}</div>
-      <p style="font-size:12px;color:var(--text2);margin-top:8px;"><b>Correct %</b> is out of every question you've ever seen in that subject across all your tests — not just the ones you attempted.</p>
-      <div class="table-wrap" style="margin-top:12px;overflow-x:auto;">
-        <table>
-          <thead><tr><th>Subject</th><th>Total</th><th>Correct</th><th>Wrong</th><th>DNP</th><th>Correct %</th><th>Attempted</th><th>Accuracy</th></tr></thead>
-          <tbody>
-          ${subj.map(s=>`<tr>
-            <td><b>${esc(s.subject)}</b></td><td>${s.total}</td>
-            <td style="color:var(--success)">${s.correct}</td><td style="color:var(--error)">${s.wrong}</td><td style="color:var(--text2)">${s.dnp}</td>
-            <td><b style="color:${s.correct_pct>=70?'#12B76A':s.correct_pct>=50?'#B45309':'#F04438'}">${s.correct_pct}%</b></td>
-            <td>${s.attempted}</td>
-            <td>${s.accuracy===null? '<span style="color:var(--text2)">N/A</span>' : s.accuracy+'%'}</td>
-          </tr>`).join('')}
-          </tbody>
-        </table>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+        <div class="subj-filter-tabs">
+          <button class="subj-filter-tab active" data-filter="all">All (${subj.length})</button>
+          <button class="subj-filter-tab" data-filter="critical">Critical (&lt;10%)</button>
+          <button class="subj-filter-tab" data-filter="strongest">Strongest (&gt;30%)</button>
+        </div>
+        <input id="subjSearchInput" placeholder="🔍 Filter subjects…" style="max-width:200px;">
       </div>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:12px;"><b>Correct %</b> is out of every question you've ever seen in that subject across all your tests — not just the ones you attempted.</p>
+      <div class="table-wrap" id="subjTableWrap" style="max-height:400px;overflow-y:auto;"></div>
     </div>
 
     <div class="row">
-      <div class="card pad" style="flex:1;min-width:280px;">
-        <h4 style="font-size:15px;margin-bottom:10px;color:var(--error);">🔻 Focus on these first</h4>
-        ${weakest.map(s=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13.5px;"><span>${esc(s.subject)}</span><b style="color:var(--error);">${s.correct_pct}%</b></div>`).join('')}
+      <div class="card pad fade-in-up" style="flex:1;min-width:280px;animation-delay:.2s;">
+        <h4 style="font-size:15px;margin-bottom:12px;color:var(--error);">🔻 Focus on these first</h4>
+        ${weakest.map(s=>`<div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;font-size:13.5px;margin-bottom:5px;"><span>${esc(s.subject)}</span><b style="color:var(--error);">${s.correct_pct}%</b></div><div class="part-progress-track"><div style="height:100%;background:var(--error);border-radius:4px;width:${s.correct_pct}%;"></div></div></div>`).join('')}
       </div>
-      <div class="card pad" style="flex:1;min-width:280px;">
-        <h4 style="font-size:15px;margin-bottom:10px;color:var(--success);">💪 Your strongest subjects</h4>
-        ${strongest.map(s=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13.5px;"><span>${esc(s.subject)}</span><b style="color:var(--success);">${s.correct_pct}%</b></div>`).join('')}
+      <div class="card pad fade-in-up" style="flex:1;min-width:280px;animation-delay:.26s;">
+        <h4 style="font-size:15px;margin-bottom:12px;color:var(--success);">💪 Your strongest subjects</h4>
+        ${strongest.map(s=>`<div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;font-size:13.5px;margin-bottom:5px;"><span>${esc(s.subject)}</span><b style="color:var(--success);">${s.correct_pct}%</b></div><div class="part-progress-track"><div class="part-progress-fill" style="width:${s.correct_pct}%;"></div></div></div>`).join('')}
       </div>
     </div>
 
@@ -2651,6 +3396,42 @@ async function studentAnalytics(root){
       <p>${weakest[0]? `Your weakest subject right now is <b>${esc(weakest[0].subject)}</b> at ${weakest[0].correct_pct}% correct overall. Spend your next revision session focused there before your next test.` : 'Keep taking tests to build a clearer picture of your strengths and weak areas.'}</p>
     </div>` : ''}
   `;
+  $$('[data-examtab]').forEach(b=>b.onclick=()=>{ S.analyticsExam=b.dataset.examtab; studentAnalytics(root); });
+
+  if(subj.length){
+    if(!S.subjFilter) S.subjFilter = 'all';
+    if(!S.subjSearch) S.subjSearch = '';
+    const renderSubjTable = ()=>{
+      let rows = subj;
+      if(S.subjFilter==='critical') rows = rows.filter(s=>s.correct_pct<10);
+      else if(S.subjFilter==='strongest') rows = rows.filter(s=>s.correct_pct>30);
+      if(S.subjSearch) rows = rows.filter(s=>s.subject.toLowerCase().includes(S.subjSearch.toLowerCase()));
+      const wrap = $('#subjTableWrap');
+      if(!wrap) return;
+      wrap.innerHTML = `<table>
+        <thead><tr><th>Subject</th><th>Total</th><th>Correct</th><th>Wrong</th><th>Not Attempted</th><th>Accuracy</th><th>Overall Score</th></tr></thead>
+        <tbody>
+        ${rows.length? rows.map(s=>{
+          const barColor = s.correct_pct>=30?'var(--success)':s.correct_pct>=10?'var(--warning)':'var(--error)';
+          return `<tr>
+            <td><b>${esc(s.subject)}</b></td><td>${s.total}</td>
+            <td style="color:var(--success)">${s.correct}</td><td style="color:var(--error)">${s.wrong}</td><td style="color:var(--text2)">${s.dnp}</td>
+            <td>${s.accuracy===null? '<span style="color:var(--text2)">N/A</span>' : s.accuracy+'%'}</td>
+            <td><div style="display:flex;align-items:center;gap:8px;min-width:130px;"><div class="part-progress-track" style="flex:1;"><div style="height:100%;border-radius:4px;background:${barColor};width:${s.correct_pct}%;"></div></div><b style="color:${barColor};font-size:12.5px;white-space:nowrap;">${s.correct_pct}%</b></div></td>
+          </tr>`;
+        }).join('') : `<tr><td colspan="7"><div class="empty-state">No subjects match this filter.</div></td></tr>`}
+        </tbody>
+      </table>`;
+    };
+    renderSubjTable();
+    $$('.subj-filter-tab').forEach(btn=>btn.onclick=()=>{
+      S.subjFilter = btn.dataset.filter;
+      $$('.subj-filter-tab').forEach(b=>b.classList.toggle('active', b===btn));
+      renderSubjTable();
+    });
+    const searchInput = $('#subjSearchInput');
+    if(searchInput){ searchInput.value = S.subjSearch; searchInput.oninput = (e)=>{ S.subjSearch = e.target.value; renderSubjTable(); }; }
+  }
 }
 
 function sectionStartable(sections, idx){
@@ -2663,21 +3444,27 @@ function sectionStartable(sections, idx){
 
 async function studentDashboard(root){
   root.innerHTML = `<div class="empty-state">Loading your dashboard…</div>`;
-  const { data, error } = await sb.rpc('student_get_dashboard', {p_token: S.studentToken});
+  const [{ data, error }, { data: analyticsData }] = await Promise.all([
+    sb.rpc('student_get_dashboard', {p_token: S.studentToken}),
+    sb.rpc('student_get_analytics', {p_token: S.studentToken}),
+  ]);
   if(error){
     root.innerHTML = `<div class="empty-state">Could not load dashboard: ${esc(error.message)}<br><button class="btn btn-outline btn-sm" style="margin-top:10px;" onclick="doLogout()">Log in again</button></div>`;
     return;
   }
   const tests = (data.tests||[]);
+  const firstName = esc(S.currentUser.name.split(' ')[0]);
+  const testsCompleted = tests.filter(t=>t.attempt_status==='submitted').length;
+  const avgAccuracy = analyticsData?.overall?.avg_accuracy;
+  const bestRanks = data.best_ranks || [];
+  const bestRankFor = code => bestRanks.find(r=>r.exam_code===code)?.rank;
+  const hour = new Date().getHours();
+  const greeting = hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
+  const nextLive = tests.find(t=>t.status==='live' && t.attempt_status!=='submitted');
+  const heroSub = nextLive? `Your ${esc(nextLive.name)} is ready. Keep the momentum going.` : `Check back once your admin publishes your next test.`;
+  const bestRankOverall = bestRanks.length? Math.min(...bestRanks.map(r=>r.rank)) : null;
 
-  root.innerHTML = `
-    <div class="welcome-band">
-      <h2 style="color:#fff">Welcome back, ${esc(S.currentUser.name.split(' ')[0])}</h2>
-      <p>Your admin releases Parts of each Grand Test when they're ready — check back for newly opened Parts.</p>
-      <button class="btn btn-outline" style="background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.3);margin-top:14px;" onclick="S.studentPage='analytics';render();">📊 My Analytics</button>
-      <button class="btn btn-outline" style="background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.3);margin-top:14px;margin-left:8px;" onclick="S.studentPage='errorbook';render();">📕 Error Book</button>
-    </div>
-    ${tests.length? tests.map(t=>{
+  function renderTestCard(t, idx){
       const finished = t.attempt_status==='submitted';
       const noAttemptsLeft = !t.has_in_progress && t.attempts_used >= t.max_attempts;
       const now = Date.now();
@@ -2685,65 +3472,319 @@ async function studentDashboard(root){
       const endAt = t.end_at? new Date(t.end_at) : null;
       const notStartedYet = startAt && now < startAt.getTime();
       const windowClosed = endAt && now > endAt.getTime();
+      const totalQAll = (t.parts||[]).reduce((a,p)=>a+(p.sections||[]).reduce((b,s)=>b+s.question_count,0),0);
+      const totalMinAll = (t.parts||[]).reduce((a,p)=>a+(p.sections||[]).reduce((b,s)=>b+s.duration_min,0),0);
+      const doneQAll = (t.parts||[]).reduce((a,p)=>{
+        const states=(p.sections||[]).map((s,i)=>({s,st:sectionStartable(p.sections,i)}));
+        return a+states.filter(x=>x.st.state==='completed').reduce((b,x)=>b+x.s.question_count,0);
+      },0);
+      const overallPct = totalQAll? Math.round(doneQAll/totalQAll*100) : 0;
+      // Find the current "next action" part/section across the whole test, for the footer line (e.g. "Section B is ready")
+      let currentPart=null, currentNext=null, currentStates=null;
+      for(const p of (t.parts||[])){
+        const states = (p.sections||[]).map((s,i)=>({s, st: sectionStartable(p.sections, i)}));
+        const next = states.find(x=>x.st.state==='start' || x.st.state==='resume');
+        if(next && p.status==='live' && !notStartedYet && !windowClosed && !noAttemptsLeft){ currentPart=p; currentNext=next; currentStates=states; break; }
+      }
       return `
-      <div class="card pad" style="margin-bottom:16px;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
-          <div>
-            <span class="badge badge-blue">${t.exam_code}</span>
-            <h3 style="font-size:18px;margin:8px 0 4px;">${esc(t.name)}</h3>
-            <p style="font-size:13px;color:var(--text2);">${esc(t.description||'')}</p>
-            ${t.max_attempts>1? `<p style="font-size:12px;color:var(--text2);margin-top:4px;">Attempts used: ${t.attempts_used}/${t.max_attempts}</p>`:''}
-            ${startAt||endAt? `<p style="font-size:12px;color:var(--text2);margin-top:6px;">
-              ${startAt? `📅 Opens: ${startAt.toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}` : ''}
-              ${endAt? ` &nbsp;·&nbsp; Closes: ${endAt.toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}` : ''}
-            </p>`:''}
-            ${notStartedYet? `<span class="badge badge-warning" style="margin-top:6px;">Opens ${startAt.toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</span>` : ''}
-            ${!notStartedYet && windowClosed? `<span class="badge badge-error" style="margin-top:6px;">Test window closed</span>` : ''}
+      <div class="test-card fade-in-up" style="animation-delay:${.18+idx*.05}s;">
+        <div class="test-card-accent" style="background:${t.status==='live'?'linear-gradient(180deg,var(--blue),var(--blue-bright))':'transparent'};"></div>
+        <div class="test-card-body">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
+            <div>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <span class="badge badge-blue">${t.exam_code}</span>
+                ${t.status==='live'?'<span class="badge badge-success">● LIVE</span>':finished?'<span class="badge badge-navy">✓ COMPLETED</span>':''}
+              </div>
+              <h3 style="font-size:19px;margin:10px 0 4px;">${esc(t.name)}</h3>
+              <p style="font-size:13.5px;color:var(--text2);">${esc(t.description||'')}</p>
+            </div>
+            <div style="text-align:right;">
+              ${finished? (t.ranking_enabled? `<div style="font-size:11px;color:var(--text2);font-weight:700;">🏆 National rank</div><div style="font-size:20px;font-weight:800;font-family:'Manrope';">—</div>` : '') :
+                `<div style="font-size:11px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:.3px;">Progress</div><div style="font-size:26px;font-weight:800;color:var(--blue);font-family:'Manrope';">${overallPct}%</div>`}
+            </div>
           </div>
-          ${finished? `<button class="btn btn-navy btn-sm" onclick="viewMyResult('${t.attempt_id}')">View Result</button>` : ''}
-        </div>
-        ${finished && !noAttemptsLeft && !t.has_in_progress? `<div class="lock-banner" style="margin-top:12px;background:var(--success-bg,#ECFDF5);border-color:#A9E6C4;color:#0B6B39;">You've submitted this test, but you still have ${t.max_attempts - t.attempts_used} attempt(s) left — start again below whenever you're ready.</div>`:''}
-        ${noAttemptsLeft? `<div class="lock-banner" style="margin-top:12px;">You've used all ${t.max_attempts} attempt(s) for this test.</div>`:''}
-        <div style="margin-top:14px;">
-          ${(t.parts||[]).map(p=>{
-            const totalQ = (p.sections||[]).reduce((a,s)=>a+s.question_count,0);
-            const states = (p.sections||[]).map((s,i)=>({s, st: sectionStartable(p.sections, i)}));
-            const completedQ = states.filter(x=>x.st.state==='completed').reduce((a,x)=>a+x.s.question_count,0);
-            const pct = totalQ? Math.round(completedQ/totalQ*100) : 0;
-            const next = states.find(x=>x.st.state==='start' || x.st.state==='resume');
-            let nextAction = '';
-            if(notStartedYet){ nextAction = `<span class="badge badge-warning">Opens later</span>`; }
-            else if(windowClosed && pct<100){ nextAction = `<span class="badge badge-error">Window closed</span>`; }
-            else if(p.status!=='live'){ nextAction = `<span class="badge badge-grey">🔒 Not open yet</span>`; }
-            else if(noAttemptsLeft){ nextAction = `<span class="badge badge-grey">No attempts left</span>`; }
-            else if(pct>=100){ nextAction = `<span class="badge badge-success">✅ All done</span>`; }
-            else if(next && next.st.state==='resume'){ nextAction = `<button class="btn btn-primary btn-sm" onclick="startSection('${next.s.id}')">Continue ${esc(next.s.name)}</button>`; }
-            else if(next){ nextAction = `<button class="btn btn-primary btn-sm" onclick='goToSectionInstructions(${JSON.stringify(next.s.id)}, ${JSON.stringify(t.name)}, ${JSON.stringify(t.instructions||'')})'>Start ${esc(next.s.name)}</button>`; }
-            return `
-            <div style="border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
-                <div>
-                  <b style="font-size:14px;">${esc(p.name)}</b>
-                  <span style="color:var(--text2);font-size:12.5px;margin-left:6px;">${totalQ} questions · ${completedQ}/${totalQ} complete</span>
-                </div>
-                ${p.status==='live'? '<span class="badge badge-success">LIVE</span>' : p.status==='closed'? '<span class="badge badge-navy">CLOSED</span>' : '<span class="badge badge-grey">LOCKED</span>'}
-              </div>
-              <div style="height:6px;border-radius:4px;background:var(--border);overflow:hidden;margin-bottom:10px;">
-                <div style="height:100%;width:${pct}%;background:var(--success,#16a34a);"></div>
-              </div>
-              <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
-                ${states.map(x=>`<span class="badge ${x.st.state==='completed'?'badge-success':(x===next?'badge-blue':'badge-grey')}" style="font-size:11px;">${x.st.state==='completed'?'✓':(x===next?'▶':'🔒')} ${esc(x.s.name)}</span>`).join('')}
-              </div>
-              <div>${nextAction}</div>
-            </div>`;
-          }).join('')}
+          ${!finished? `
+          <div class="test-progress-track"><div class="test-progress-fill" style="width:${overallPct}%;"></div></div>
+          <div class="test-meta-row">
+            ${totalQAll?`<span>❓ ${totalQAll} questions</span>`:''}
+            ${totalMinAll?`<span>🕐 ${Math.round(totalMinAll/60*10)/10} hours</span>`:''}
+            <span>🛡 Proctored</span>
+          </div>`:''}
+          ${finished && !noAttemptsLeft && !t.has_in_progress? `<div class="lock-banner" style="margin-top:14px;background:var(--success-bg,#ECFDF5);border-color:#A9E6C4;color:#0B6B39;">You've submitted this test, but you still have ${t.max_attempts - t.attempts_used} attempt(s) left — start again below whenever you're ready.</div>`:''}
+          ${noAttemptsLeft? `<div class="lock-banner" style="margin-top:14px;">You've used all ${t.max_attempts} attempt(s) for this test.</div>`:''}
+          <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+            <div>
+              ${currentPart? `
+                <div class="dash-eyebrow" style="font-size:11px;">${esc(currentPart.name).toUpperCase()}</div>
+                <div style="font-size:15px;font-weight:800;margin-top:2px;">${currentNext.st.state==='resume'?'Continue where you left off':esc(currentNext.s.name)+' is ready'}</div>
+                <div style="font-size:12px;color:var(--text2);margin-top:2px;">${currentStates.filter(x=>x.st.state==='completed').length}/${currentStates.length} sections complete</div>
+              ` : finished? `
+                <div style="font-size:15px;font-weight:800;">✓ Test submitted</div>
+                <div style="font-size:12.5px;color:var(--text2);margin-top:2px;">${noAttemptsLeft? 'All attempts used' : 'No further section is currently open'}</div>
+              ` : notStartedYet? `<div style="font-size:13px;color:var(--warning);font-weight:700;">Opens ${startAt.toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</div>`
+                : windowClosed? `<div style="font-size:13px;color:var(--error);font-weight:700;">Test window closed</div>`
+                : `<div style="font-size:13px;color:var(--text2);">${overallPct>=100?'All parts complete':'Not yet open'}</div>`}
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              ${finished? `<button class="btn btn-outline btn-sm" onclick="viewMyResult('${t.attempt_id}')">View result <span style="margin-left:2px;">›</span></button>`:''}
+              ${currentPart? (currentNext.st.state==='resume'?
+                  `<button class="btn btn-primary" onclick="startSection('${currentNext.s.id}', '${t.id}', '${currentPart.id}')">Continue exam <span style="margin-left:2px;">›</span></button>`
+                  : `<button class="btn btn-primary" onclick='goToSectionInstructions(${JSON.stringify(currentNext.s.id)}, ${JSON.stringify(t.name)}, ${JSON.stringify(t.instructions||'')}, ${JSON.stringify(t.id)}, ${JSON.stringify(currentPart.id)})'>${finished?'Start new attempt':'Start exam'} <span style="margin-left:2px;">›</span></button>`)
+              : ''}
+          </div>
+          ${!currentPart && !finished && (t.parts||[]).length>1? `<div style="margin-top:14px;display:flex;gap:6px;flex-wrap:wrap;">
+            ${(t.parts||[]).map(p=>`<span class="badge ${p.status==='live'?'badge-success':p.status==='closed'?'badge-navy':'badge-grey'}" style="font-size:11px;">${esc(p.name)}: ${p.status==='live'?'LIVE':p.status==='closed'?'CLOSED':'LOCKED'}</span>`).join('')}
+          </div>`:''}
+          </div>
         </div>
       </div>`;
-    }).join('') : `<div class="empty-state">No tests are available yet — check back once your admin publishes one.</div>`}
+  }
+
+  function renderExamGroup(examCode, label, list){
+    if(!list.length) return '';
+    return `
+      <div class="dash-section-head fade-in-up" style="margin-top:20px;">
+        <div><span class="badge badge-blue">${label}</span></div>
+        ${bestRankFor(examCode)? `<span style="font-size:12px;color:var(--text2);">🏆 Best rank: #${bestRankFor(examCode)}</span>`:''}
+      </div>
+      ${list.map((t,idx)=>renderTestCard(t,idx)).join('')}
+    `;
+  }
+  const fmgeTests = tests.filter(t=>t.exam_code==='FMGE');
+  const neetTests = tests.filter(t=>t.exam_code==='NEET_PG');
+  const otherTests = tests.filter(t=>t.exam_code!=='FMGE' && t.exam_code!=='NEET_PG');
+
+  root.innerHTML = `
+    <div class="dash-hero fade-in-up">
+      <div class="dash-hero-top"><span class="dash-hero-tag">STUDENT DASHBOARD</span></div>
+      <h2>${greeting}, ${firstName}.</h2>
+      <p class="dash-hero-sub">${heroSub}</p>
+    </div>
+
+    <div class="dash-stats fade-in-up" style="animation-delay:.08s;">
+      <div class="dash-stat"><div class="dash-stat-icon" style="background:#EFF6FF;">📋</div><div><b>${testsCompleted}</b><span>Tests completed</span></div></div>
+      <div class="dash-stat"><div class="dash-stat-icon" style="background:#ECFDF3;">⏱</div><div><b>${avgAccuracy!=null? avgAccuracy+'%' : '—'}</b><span>Average accuracy</span></div></div>
+      <div class="dash-stat"><div class="dash-stat-icon" style="background:#FFFAEB;">🏆</div><div><b>${bestRankOverall? '#'+bestRankOverall : '—'}</b><span>Best national rank</span></div></div>
+      <div class="dash-stat" style="cursor:pointer;" onclick="S.studentPage='errorbook';render();"><div class="dash-stat-icon" style="background:#FEF3F2;">📕</div><div><b>${data.error_count||0}</b><span>Error book</span></div></div>
+    </div>
+
+    <div class="test-card fade-in-up" style="animation-delay:.11s;cursor:pointer;" onclick="S.studentPage='rankpredictor';render();">
+      <div class="test-card-accent" style="background:linear-gradient(180deg,var(--blue),var(--blue-bright));"></div>
+      <div class="test-card-body" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div class="dash-stat-icon" style="background:#EFF6FF;font-size:20px;">🎯</div>
+          <div>
+            <h3 style="font-size:16px;margin:0 0 2px;">NEET PG Rank Predictor</h3>
+            <p style="font-size:13px;color:var(--text2);margin:0;">Estimate your All India Rank from your score, based on historical data.</p>
+          </div>
+        </div>
+        <button class="btn btn-outline btn-sm">Open ›</button>
+      </div>
+    </div>
+
+    <div class="dash-section-head fade-in-up" style="animation-delay:.14s;">
+      <div><span class="dash-eyebrow">AVAILABLE NOW</span><h3>Your test series</h3></div>
+      <button class="btn btn-outline btn-sm" onclick="S.studentPage='analytics';render();">📊 View analytics</button>
+    </div>
+
+    ${tests.length? `
+      ${renderExamGroup('FMGE', 'FMGE', fmgeTests)}
+      ${renderExamGroup('NEET_PG', 'NEET PG', neetTests)}
+      ${otherTests.length? renderExamGroup(otherTests[0].exam_code, otherTests[0].exam_code, otherTests) : ''}
+    ` : `<div class="empty-state">No tests are available yet — check back once your admin publishes one.</div>`}
   `;
 }
-window.goToSectionInstructions = (sectionId, testName, instructions)=>{
-  S.pendingSection = { sectionId, testName, instructions };
+// =========================================================================
+// NEET PG RANK PREDICTOR — student-facing
+// =========================================================================
+async function studentRankPredictor(root){
+  root.innerHTML = `<div class="empty-state">Loading Rank Predictor…</div>`;
+  const { data: cfg, error: cfgErr } = await sb.rpc('neetpg_get_config');
+  if(cfgErr){ root.innerHTML = `<div class="empty-state">Could not load Rank Predictor: ${esc(cfgErr.message)}<br><button class="btn btn-outline btn-sm" style="margin-top:10px;" onclick="renderStudentPage($('#stuContent'))">Retry</button></div>`; return; }
+
+  S.rpMode = S.rpMode || 'score';
+  const categories = cfg.available_categories||[];
+
+  root.innerHTML = `
+    <button class="btn btn-ghost btn-sm" style="margin-bottom:14px;" onclick="S.studentPage='dashboard';render();">← Back to Dashboard</button>
+
+    <div class="rp-hero fade-in-up">
+      <div class="rp-hero-inner">
+        <span class="rp-hero-tag">NEET PG ${cfg.exam_year} TOOLS</span>
+        <h2>NEET PG ${cfg.exam_year} Rank Predictor</h2>
+        <p class="rp-hero-sub">${esc(cfg.page_subtitle||'')}</p>
+        ${cfg.active_dataset_note? `<p class="rp-hero-note">${esc(cfg.active_dataset_note)}</p>`:''}
+        ${cfg.trust_statement? `<p class="rp-hero-note">${esc(cfg.trust_statement)}</p>`:''}
+      </div>
+    </div>
+
+    ${cfg.stats_visible? `
+    <div class="rp-stats fade-in-up" style="animation-delay:.06s;">
+      <div class="rp-stat"><div class="rp-stat-icon" style="background:#EFF6FF;">❓</div><div><b>${cfg.total_questions}</b><span>Questions</span></div></div>
+      <div class="rp-stat"><div class="rp-stat-icon" style="background:#ECFDF3;">🎯</div><div><b>${cfg.maximum_score}</b><span>Max Marks</span></div></div>
+      ${cfg.candidate_count_display? `<div class="rp-stat"><div class="rp-stat-icon" style="background:#FFFAEB;">🧑‍🎓</div><div><b>${esc(cfg.candidate_count_display)}</b><span>Candidates</span></div></div>`:''}
+      ${cfg.exam_date? `<div class="rp-stat"><div class="rp-stat-icon" style="background:#FEF3F2;">📅</div><div><b>${new Date(cfg.exam_date).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</b><span>Exam Date</span></div></div>`:''}
+    </div>`:''}
+
+    <div class="rp-disclaimer">${esc(cfg.disclaimer)}</div>
+
+    <div class="rp-card">
+      <div class="rp-modeswitch">
+        <button type="button" class="btn ${S.rpMode==='score'?'btn-primary':'btn-ghost'} btn-sm" id="rpTabScore">Enter total score</button>
+        <button type="button" class="btn ${S.rpMode==='sections'?'btn-primary':'btn-ghost'} btn-sm" id="rpTabSections">Calculate from sections</button>
+      </div>
+
+      ${S.rpMode==='score'? `
+        <label class="rp-label">Your NEET PG Score</label>
+        <input type="number" id="rpScoreInput" class="rp-input" min="0" max="${cfg.maximum_score}" placeholder="Enter your score" value="${S.rpScore??''}">
+        <div class="rp-hint">Maximum score: ${cfg.maximum_score}</div>
+      ` : `
+        <div class="rp-section-grid">
+          <div><label class="rp-label">Correct</label><input type="number" id="rpCorrect" class="rp-input" min="0" max="${cfg.total_questions}" value="${S.rpCorrect??''}"></div>
+          <div><label class="rp-label">Incorrect</label><input type="number" id="rpIncorrect" class="rp-input" min="0" max="${cfg.total_questions}" value="${S.rpIncorrect??''}"></div>
+          <div><label class="rp-label">Unattempted</label><input type="number" id="rpUnattempted" class="rp-input" min="0" max="${cfg.total_questions}" value="${S.rpUnattempted??''}"></div>
+        </div>
+        <div id="rpCalcLine" class="rp-calc-line"></div>
+      `}
+
+      ${categories.length? `
+        <label class="rp-label" style="margin-top:16px;">Your category</label>
+        <div id="rpCategoryPills" class="rp-pillrow">
+          ${['General',...categories.filter(c=>c!=='General')].map(c=>`
+            <button type="button" class="btn btn-sm rp-cat-pill rp-pill ${((S.rpCategory||'General')===c)?'btn-primary':'btn-ghost'}" data-cat="${esc(c)}">${esc(c)}</button>
+          `).join('')}
+        </div>
+      `:''}
+
+      <button class="btn btn-primary rp-predict-btn" id="rpPredictBtn" disabled>Predict My Rank</button>
+      <div id="rpResultArea"></div>
+    </div>
+  `;
+
+  $('#rpTabScore').onclick=()=>{ S.rpMode='score'; renderStudentPage($('#stuContent')); };
+  $('#rpTabSections').onclick=()=>{ S.rpMode='sections'; renderStudentPage($('#stuContent')); };
+  $$('.rp-cat-pill').forEach(b=>b.onclick=()=>{ S.rpCategory=b.dataset.cat==='General'?'':b.dataset.cat; renderStudentPage($('#stuContent')); });
+
+  const scoreInput = $('#rpScoreInput');
+  const predictBtn = $('#rpPredictBtn');
+
+  function currentScore(){
+    if(S.rpMode==='score'){
+      if(!scoreInput || scoreInput.value===''){ return null; }
+      const v = parseFloat(scoreInput.value);
+      return Number.isFinite(v)? v : null;
+    } else {
+      const c = parseInt($('#rpCorrect')?.value)||0, i = parseInt($('#rpIncorrect')?.value)||0, u = parseInt($('#rpUnattempted')?.value)||0;
+      if(c+i+u > cfg.total_questions) return null;
+      return Math.max(0, c*cfg.marks_per_correct - i*cfg.negative_marks);
+    }
+  }
+  function updateBtnState(){
+    const s = currentScore();
+    predictBtn.disabled = !(s!=null && s>=0 && s<=cfg.maximum_score);
+    if(S.rpMode==='sections'){
+      const c = parseInt($('#rpCorrect')?.value)||0, i = parseInt($('#rpIncorrect')?.value)||0, u = parseInt($('#rpUnattempted')?.value)||0;
+      const line = $('#rpCalcLine');
+      if(line) line.textContent = (c+i+u<=cfg.total_questions)? `Calculated Score: ${s} / ${cfg.maximum_score}` : `Correct + Incorrect + Unattempted cannot exceed ${cfg.total_questions}.`;
+    }
+  }
+  if(S.rpMode==='score' && scoreInput) scoreInput.oninput = updateBtnState;
+  if(S.rpMode==='sections'){ ['rpCorrect','rpIncorrect','rpUnattempted'].forEach(id=>{ const el=$('#'+id); if(el) el.oninput = updateBtnState; }); }
+  updateBtnState();
+
+  predictBtn.onclick = async ()=>{
+    const s = currentScore();
+    if(s==null) return;
+    if(S.rpMode==='score') S.rpScore = s;
+    else {
+      S.rpCorrect = parseInt($('#rpCorrect').value)||0;
+      S.rpIncorrect = parseInt($('#rpIncorrect').value)||0;
+      S.rpUnattempted = parseInt($('#rpUnattempted').value)||0;
+    }
+    predictBtn.disabled = true;
+    const originalLabel = predictBtn.textContent;
+    predictBtn.innerHTML = `<span class="spinner-white"></span> Calculating your estimated rank…`;
+    const resultArea = $('#rpResultArea');
+    resultArea.innerHTML = '';
+    try{
+      const { data: pred, error: predErr } = await sb.rpc('neetpg_predict_rank', { p_score: s, p_category: S.rpCategory||null, p_student_id: S.currentUser.id });
+      if(predErr || !pred?.success){
+        resultArea.innerHTML = `<div class="empty-state">Something went wrong while calculating your prediction. Please try again.<br><button class="btn btn-outline btn-sm" style="margin-top:10px;" id="rpRetry">Retry</button></div>`;
+        $('#rpRetry').onclick = ()=>renderStudentPage($('#stuContent'));
+      } else {
+        await renderRankPredictorResult(resultArea, pred.data, cfg, S.rpCategory||'General');
+      }
+    }catch(e){
+      resultArea.innerHTML = `<div class="empty-state">Something went wrong while calculating your prediction. Please try again.</div>`;
+    } finally {
+      predictBtn.disabled = false; predictBtn.textContent = originalLabel;
+    }
+  };
+}
+async function renderRankPredictorResult(root, data, cfg, category){
+  if(data.result_code === 'insufficient_data'){
+    root.innerHTML = `
+      <div class="rp-result">
+        <b>We don't have enough reliable historical data to provide a confident prediction for this score range.</b>
+        <div class="rp-hint" style="margin-top:6px;">Your score: ${data.score} / ${data.max_score}</div>
+        <button class="btn btn-outline btn-sm" style="margin-top:14px;" onclick="renderStudentPage($('#stuContent'))">Change score</button>
+      </div>
+    `;
+    return;
+  }
+  const air = data.expected_air;
+  root.innerHTML = `
+    <div class="rp-result">
+      <div class="rp-hint">Your score: ${data.score} / ${data.max_score}</div>
+      <div class="rp-result-eyebrow" style="margin-top:10px;">Predicted All India Rank</div>
+      <div class="rp-result-air">${air.min.toLocaleString('en-IN')} – ${air.max.toLocaleString('en-IN')}</div>
+      <div class="rp-result-sub">(${esc(category)} category estimate)</div>
+      ${data.percentile!=null? `<div class="rp-result-pct"><span>Estimated Percentile</span><b>${data.percentile}</b></div>`:''}
+      ${data.result_code==='low_confidence'? `<div class="rp-hint" style="margin-top:10px;">Limited historical data is available for this score range — treat this range as wider than usual.</div>`:''}
+      <div class="rp-result-note">Estimate based on ${esc(cfg.active_dataset_note||'historical data')}. Actual rank confirmed after NBEMS results.</div>
+      <div id="rpSpecialtyArea" class="rp-specialty"></div>
+      <div style="display:flex;gap:8px;margin-top:18px;flex-wrap:wrap;justify-content:center;">
+        <button class="btn btn-outline btn-sm" onclick="renderStudentPage($('#stuContent'))">Predict Again</button>
+        ${cfg.college_predictor_cta_visible? `<button class="btn btn-outline btn-sm" disabled title="Coming soon">Explore Colleges</button>` : ''}
+      </div>
+    </div>
+  `;
+
+  const specArea = $('#rpSpecialtyArea');
+  const { data: spec, error: specErr } = await sb.rpc('neetpg_get_specialty_targets', {
+    p_rank_min: air.min, p_rank_max: air.max, p_category: category,
+  });
+  const list = (!specErr && spec?.success) ? (spec.data.specialties||[]).filter(s=>s.chance!=='out_of_range') : [];
+  if(!list.length){
+    specArea.innerHTML = `
+      <div class="rp-specialty-head">Specialties you can target</div>
+      <div class="empty-state" style="margin-top:10px;">No verified specialty closing-rank data has been added yet for ${esc(category)} category — an admin needs to import this from Admin → Rank Predictor → Specialty Cutoffs.</div>
+    `;
+    return;
+  }
+  const chanceLabel = { within_reach: '✓ Within reach', borderline: '⚡ Borderline', out_of_range: 'Out of range' };
+  const chanceColor = { within_reach: 'var(--success)', borderline: 'var(--warning)', out_of_range: 'var(--text2)' };
+  const chanceBg = { within_reach: 'var(--success-bg)', borderline: 'var(--warning-bg)', out_of_range: 'transparent' };
+  specArea.innerHTML = `
+    <div class="rp-specialty-head">Specialties you can target</div>
+    <p class="rp-specialty-sub">Based on your predicted rank vs AIQ closing ranks. Explore specialties that historically appeared around similar rank ranges — not a guarantee of admission.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Specialty</th><th>AIQ closing rank</th><th>Your chance</th></tr></thead>
+      <tbody>
+        ${list.map(s=>`
+          <tr style="background:${chanceBg[s.chance]};">
+            <td><b>${esc(s.specialty)}</b></td>
+            <td>${Number(s.closing_rank).toLocaleString('en-IN')}</td>
+            <td style="color:${chanceColor[s.chance]};font-weight:700;">${chanceLabel[s.chance]}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table></div>
+    <div style="font-size:11.5px;color:var(--text2);margin-top:8px;">Cutoffs vary by round, category and year — shown for reference only.</div>
+  `;
+}
+window.goToSectionInstructions = (sectionId, testName, instructions, testId, partId)=>{
+  S.pendingSection = { sectionId, testName, instructions, testId, partId };
   S.studentPage='instructions';
   render();
 };
@@ -2759,9 +3800,9 @@ async function studentInstructionsPage(root){
       <button class="btn btn-primary btn-block" style="margin-top:22px;padding:14px;" id="startExamBtn">I HAVE READ THE INSTRUCTIONS — START EXAM</button>
     </div>
   `;
-  $('#startExamBtn').onclick=()=>startSection(p.sectionId);
+  $('#startExamBtn').onclick=()=>startSection(p.sectionId, p.testId, p.partId);
 }
-window.startSection = async(sectionId)=>{
+window.startSection = async(sectionId, testId, partId)=>{
   if(S.startingSection) return; // guard against double-click firing this twice before the first request returns
   S.startingSection = true;
   const { data, error } = await sb.rpc('student_start_section', {p_token: S.studentToken, p_section_id: sectionId});
@@ -2776,6 +3817,12 @@ window.startSection = async(sectionId)=>{
     }
     toast(error.message,'err'); render(); return;
   }
+  // Remember which test+part this section belongs to, so that when this
+  // section ends we can check whether the NEXT section in the same part is
+  // ready to go straight away — real exams (FMGE/NEET PG) flow section to
+  // section within a part with no dashboard/instructions detour in between.
+  if(testId) S.activeTestId = testId;
+  if(partId) S.activePartId = partId;
   S.activeSection = {
     attemptId: data.attempt_id, attemptSectionId: data.attempt_section_id,
     sectionName: data.section_name, serverEndAt: data.server_end_at,
@@ -3046,6 +4093,102 @@ function medmindAvatar(size=40){
     <path d="M21 30.5 q3 2.4 6 0" stroke="#8B2FC9" stroke-width="1.4" fill="none" stroke-linecap="round"/>
   </svg>`;
 }
+// Floating MedMind chat widget — a small circular launcher fixed to the
+// corner of the screen (like Intercom/Drift-style chat buttons). Clicking
+// it opens a compact chat panel. This is a GENERAL doubt-chat (not tied to
+// any one test's score), so it stays available regardless of any
+// per-test AI Mentor toggle.
+function mountMedMindFab(){
+  if(document.getElementById('medmindFab')) return; // already mounted
+  if(!S.medmindFabHistory) S.medmindFabHistory = [];
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <button id="medmindFab" class="medmind-fab" title="Ask MedMind">${medmindAvatar(30)}</button>
+    <div class="medmind-fab-label">✨ Ask MedMind — AI Study Buddy</div>
+    <div id="medmindPanel" class="medmind-panel" style="display:none;">
+      <div class="medmind-panel-header">
+        ${medmindAvatar(34)}
+        <div style="flex:1;"><b style="color:#fff;font-size:14px;">MedMind</b><div style="font-size:11px;color:#CBD8F0;">Your AI study buddy</div></div>
+        <button id="medmindPanelClose" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;line-height:1;">✕</button>
+      </div>
+      <div id="medmindPanelLog" class="medmind-panel-log"></div>
+      <div class="medmind-panel-input-row">
+        <input id="medmindPanelInput" placeholder="Ask MedMind anything…">
+        <button id="medmindPanelSend" class="btn btn-primary btn-sm">➤</button>
+      </div>
+      <div class="medmind-panel-footer">✨ Powered by AI — responses are auto-generated and may not always be accurate.</div>
+    </div>
+  `;
+  document.body.appendChild(wrap);
+  // Auto-dismiss the little label after a few seconds so it never sits
+  // in the way of content underneath (e.g. score numbers) indefinitely.
+  setTimeout(()=>{
+    const lbl = document.querySelector('.medmind-fab-label');
+    if(lbl){ lbl.classList.add('fading'); setTimeout(()=>lbl.remove(), 350); }
+  }, 3000);
+
+  function renderLog(){
+    const log = document.getElementById('medmindPanelLog');
+    if(!log) return;
+    log.innerHTML = S.medmindFabHistory.length? S.medmindFabHistory.map(m=>{
+      if(m.role==='assistant') return `<div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:10px;">${medmindAvatar(22)}<span style="background:linear-gradient(135deg,#C084FC,#F472B6);color:#fff;padding:8px 12px;border-radius:12px;border-bottom-left-radius:3px;font-size:12.5px;max-width:80%;white-space:pre-line;">${esc(m.content)}</span></div>`;
+      return `<div style="display:flex;justify-content:flex-end;margin-bottom:10px;"><span style="background:#fff;border:1px solid var(--border);padding:8px 12px;border-radius:12px;border-bottom-right-radius:3px;font-size:12.5px;max-width:80%;white-space:pre-line;">${esc(m.content)}</span></div>`;
+    }).join('') : `<div style="text-align:center;color:var(--text2);font-size:12.5px;padding:20px 10px;">👋 Hi! I'm MedMind. Ask me anything about your prep, exam strategy, or a doubt you have.</div>`;
+    log.scrollTop = log.scrollHeight;
+  }
+  renderLog();
+
+  const send = async()=>{
+    const input = document.getElementById('medmindPanelInput');
+    if(!input) return;
+    const q = input.value.trim();
+    if(!q) return;
+    input.value=''; input.disabled=true;
+    S.medmindFabHistory.push({role:'user', content:q});
+    renderLog();
+    try{
+      const res = await fetch('/.netlify/functions/ask-ai', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({mode:'doubt', question:q, history: S.medmindFabHistory.slice(0,-1), examTarget: S.currentUser?.examTarget||'FMGE'}),
+      });
+      const j = await res.json();
+      if(!res.ok) throw new Error(j.error||'Could not get an answer');
+      S.medmindFabHistory.push({role:'assistant', content:j.text});
+    }catch(e){
+      S.medmindFabHistory.push({role:'assistant', content:'Sorry, I could not answer that right now — please try again in a moment.'});
+    }
+    renderLog();
+    const input2 = document.getElementById('medmindPanelInput');
+    if(input2){ input2.disabled=false; input2.focus(); }
+  };
+
+  // Event delegation on document, instead of binding directly to the
+  // just-created elements. This is deliberately more defensive: it keeps
+  // working correctly even if this panel's DOM gets re-created or
+  // temporarily detached for any reason, since the listener lives on
+  // document and simply checks what was actually clicked/typed into.
+  document.addEventListener('click', function(e){
+    if(e.target.closest('#medmindFab')){
+      const panel = document.getElementById('medmindPanel');
+      if(!panel) return;
+      panel.style.display = panel.style.display==='none'?'flex':'none';
+      document.querySelector('.medmind-fab-label')?.remove();
+      if(panel.style.display==='flex') document.getElementById('medmindPanelInput')?.focus();
+    } else if(e.target.closest('#medmindPanelClose')){
+      const panel = document.getElementById('medmindPanel'); if(panel) panel.style.display='none';
+    } else if(e.target.closest('#medmindPanelSend')){
+      send();
+    }
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.target && e.target.id==='medmindPanelInput' && e.key==='Enter') send();
+  });
+}
+function unmountMedMindFab(){
+  document.getElementById('medmindFab')?.remove();
+  document.getElementById('medmindPanel')?.remove();
+  document.querySelector('.medmind-fab-label')?.remove();
+}
 function renderExamPaletteHTML(sec){
   const counts = {answered:0,notanswered:0,marked:0,notvisited:0};
   const markedIdx = [];
@@ -3110,9 +4253,33 @@ async function handleSectionSubmit(auto, reason='manual'){
     if(data.testFinished){
       toast('All sections complete — your exam has been submitted!','ok');
       S.viewingResultAttemptId = null; // dashboard will show "View Result" using student_get_dashboard's attempt_id
-    } else {
-      toast('Section submitted','ok');
+      S.studentPage='dashboard';
+      render();
+      return;
     }
+
+    // Real FMGE/NEET PG exams flow straight from one section into the next
+    // section OF THE SAME PART with no detour back to a dashboard/instructions
+    // screen — only a genuine part boundary (e.g. FMGE's break between Part A
+    // and Part B) should ever drop the student back to the dashboard. So
+    // before doing that, check whether the next section in this same part is
+    // immediately ready, and if so, jump straight into it.
+    if(S.activeTestId && S.activePartId){
+      const { data: freshDash } = await sb.rpc('student_get_dashboard', {p_token: S.studentToken});
+      const freshTest = (freshDash?.tests||[]).find(t=>t.id===S.activeTestId);
+      const freshPart = freshTest?.parts?.find(p=>p.id===S.activePartId);
+      if(freshPart && freshPart.status==='live'){
+        const secs = freshPart.sections||[];
+        const idx = secs.findIndex((s2, i)=> sectionStartable(secs, i).state==='start');
+        if(idx !== -1){
+          toast('Section submitted — moving to the next section…','ok');
+          await startSection(secs[idx].id, S.activeTestId, S.activePartId);
+          return;
+        }
+      }
+    }
+
+    toast('Section submitted','ok');
     S.studentPage='dashboard';
     render();
   } finally {
@@ -3289,25 +4456,27 @@ async function studentResult(root){
   const slowWrong = timedQs.filter(d=>d.time_spent_sec>90 && d.is_correct===false).length;
 
   root.innerHTML = `
-    <div style="text-align:center;margin-bottom:22px;"><span class="badge badge-success" style="font-size:12px;padding:6px 14px;">EXAM COMPLETED</span></div>
-    <div class="card pad" style="text-align:center;padding:34px;">
-      <div class="result-score">${Number(data.score).toFixed(2)} <span style="font-size:22px;color:var(--text2);font-weight:600;">/ ${totalQ}</span></div>
-      <div class="row" style="justify-content:center;margin-top:16px;">
-        <span class="pattern-chip">Accuracy ${data.accuracy}%</span>
-        ${data.rankingEnabled && data.rank? `<span class="pattern-chip">All India Rank #${data.rank}</span><span class="pattern-chip">Percentile ${data.percentile}</span>`:''}
-        ${avgTime? `<span class="pattern-chip">Avg ${avgTime}s / question</span>`:''}
+    <div class="dash-hero fade-in-up" style="text-align:center;">
+      <div class="dash-hero-top"><span class="dash-hero-tag">✓ EXAM COMPLETED</span></div>
+      <div style="position:relative;z-index:1;">
+        <div style="font-size:52px;font-weight:800;font-family:'Manrope';color:#fff;">${Number(data.score).toFixed(2)} <span style="font-size:22px;color:#9FB3D6;font-weight:600;">/ ${totalQ}</span></div>
+        <p class="dash-hero-sub" style="margin:6px auto 0;">${esc(data.test_name||'')}</p>
       </div>
     </div>
-    <div class="grid-cards" style="margin-top:20px;grid-template-columns:repeat(3,1fr);">
-      <div class="stat-card" style="text-align:center;"><div class="lbl">Correct</div><div class="val" style="color:var(--success)">${data.correct}</div></div>
-      <div class="stat-card" style="text-align:center;"><div class="lbl">Incorrect</div><div class="val" style="color:var(--error)">${data.incorrect}</div></div>
-      <div class="stat-card" style="text-align:center;"><div class="lbl">Unattempted</div><div class="val" style="color:var(--text2)">${data.unattempted}</div></div>
+    <div class="dash-stats fade-in-up" style="animation-delay:.08s;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));">
+      <div class="dash-stat"><div class="dash-stat-icon" style="background:#ECFDF3;">✅</div><div><b style="color:var(--success)">${data.correct}</b><span>Correct</span></div></div>
+      <div class="dash-stat"><div class="dash-stat-icon" style="background:#FEF3F2;">❌</div><div><b style="color:var(--error)">${data.incorrect}</b><span>Incorrect</span></div></div>
+      <div class="dash-stat"><div class="dash-stat-icon" style="background:var(--surface-2);">➖</div><div><b style="color:var(--text2)">${data.unattempted}</b><span>Unattempted</span></div></div>
+      <div class="dash-stat"><div class="dash-stat-icon" style="background:#EFF6FF;">🎯</div><div><b>${data.accuracy}%</b><span>Accuracy</span></div></div>
+      ${data.rankingEnabled && data.rank? `<div class="dash-stat"><div class="dash-stat-icon" style="background:#FFFAEB;">🏆</div><div><b>#${data.rank}</b><span>All India Rank</span></div></div>
+      <div class="dash-stat"><div class="dash-stat-icon" style="background:#FFFAEB;">📈</div><div><b>${data.percentile}</b><span>Percentile</span></div></div>`:''}
+      ${avgTime? `<div class="dash-stat"><div class="dash-stat-icon" style="background:var(--surface-2);">⏱</div><div><b>${avgTime}s</b><span>Avg / question</span></div></div>`:''}
     </div>
-    ${subjRows.length? `<div class="card pad" style="margin-top:20px;overflow-x:auto;">
+    ${subjRows.length? `<div class="card pad fade-in-up" style="margin-top:20px;overflow-x:auto;animation-delay:.14s;">
       <h4 style="font-size:15px;margin-bottom:4px;">Subject-wise performance</h4>
       <p style="font-size:12px;color:var(--text2);margin-bottom:14px;"><b>Correct %</b> is out of all questions in that subject on this test. <b>Accuracy</b> is only out of the questions you actually attempted — the two are different on purpose.</p>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Subject</th><th>Total</th><th>Correct</th><th>Wrong</th><th>DNP</th><th>Correct %</th><th>Wrong %</th><th>DNP %</th><th>Attempted</th><th>Accuracy</th></tr></thead>
+      <div class="table-wrap" style="max-height:360px;overflow-y:auto;"><table>
+        <thead><tr><th>Subject</th><th>Total</th><th>Correct</th><th>Wrong</th><th>Not Attempted</th><th>Correct %</th><th>Wrong %</th><th>Not Attempted %</th><th>Attempted</th><th>Accuracy</th></tr></thead>
         <tbody>
         ${subjRows.map(v=>`<tr>
           <td><b>${esc(v.subject)}</b></td>
