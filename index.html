@@ -4168,22 +4168,40 @@ function mountMedMindFab(){
   // working correctly even if this panel's DOM gets re-created or
   // temporarily detached for any reason, since the listener lives on
   // document and simply checks what was actually clicked/typed into.
-  document.addEventListener('click', function(e){
-    if(e.target.closest('#medmindFab')){
-      const panel = document.getElementById('medmindPanel');
-      if(!panel) return;
-      panel.style.display = panel.style.display==='none'?'flex':'none';
-      document.querySelector('.medmind-fab-label')?.remove();
-      if(panel.style.display==='flex') document.getElementById('medmindPanelInput')?.focus();
-    } else if(e.target.closest('#medmindPanelClose')){
-      const panel = document.getElementById('medmindPanel'); if(panel) panel.style.display='none';
-    } else if(e.target.closest('#medmindPanelSend')){
-      send();
-    }
-  });
-  document.addEventListener('keydown', function(e){
-    if(e.target && e.target.id==='medmindPanelInput' && e.key==='Enter') send();
-  });
+  // IMPORTANT: mountMedMindFab() can be called many times over one page
+  // session (every dashboard/analytics render) while unmountMedMindFab()
+  // only removes the DOM, not these document-level listeners — so this
+  // binding must only ever happen ONCE per page load, guarded by a flag,
+  // otherwise every remount stacks another click/keydown listener and a
+  // single tap eventually fires send() multiple times (duplicate messages,
+  // duplicate API calls). The listeners below always look elements up
+  // fresh by id, so a single early binding keeps working correctly against
+  // whatever DOM the most recent mount created.
+  if(!S._medmindListenersBound){
+    S._medmindListenersBound = true;
+    document.addEventListener('click', function(e){
+      if(e.target.closest('#medmindFab')){
+        const panel = document.getElementById('medmindPanel');
+        if(!panel) return;
+        panel.style.display = panel.style.display==='none'?'flex':'none';
+        document.querySelector('.medmind-fab-label')?.remove();
+        if(panel.style.display==='flex') document.getElementById('medmindPanelInput')?.focus();
+      } else if(e.target.closest('#medmindPanelClose')){
+        const panel = document.getElementById('medmindPanel'); if(panel) panel.style.display='none';
+      } else if(e.target.closest('#medmindPanelSend')){
+        document.getElementById('medmindPanelSend')?._send?.();
+      }
+    });
+    document.addEventListener('keydown', function(e){
+      if(e.target && e.target.id==='medmindPanelInput' && e.key==='Enter') document.getElementById('medmindPanelSend')?._send?.();
+    });
+  }
+  // Stash the CURRENT mount's send() on the button itself so the
+  // once-only listeners above always call the live closure (with the
+  // live S.medmindFabHistory/renderLog) rather than a stale one from
+  // the very first mount.
+  const sendBtn = document.getElementById('medmindPanelSend');
+  if(sendBtn) sendBtn._send = send;
 }
 function unmountMedMindFab(){
   document.getElementById('medmindFab')?.remove();
