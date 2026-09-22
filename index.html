@@ -471,6 +471,15 @@ html[data-theme="dark"] .subj-filter-tab.active{color:var(--text);}
   .qcard { break-inside:avoid; page-break-inside:avoid; border:1px solid #ccc !important; margin-bottom:14px; }
   img.qimg { max-width:220px !important; }
 }
+/* Toggle switch used for On/Off settings (Result & Ranking modal, test
+   wizard). Previously this had no CSS at all, so the toggle rendered as
+   an invisible/zero-size element — visible text but nothing clickable. */
+.toggle-switch{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;}
+.toggle-switch input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;}
+.toggle-switch .slider{position:absolute;inset:0;background:#CBD5E1;transition:.2s;border-radius:999px;pointer-events:none;}
+.toggle-switch .slider:before{position:absolute;content:"";height:18px;width:18px;left:3px;top:3px;background:#fff;transition:.2s;border-radius:50%;box-shadow:0 1px 2px rgba(0,0,0,.25);}
+.toggle-switch input:checked + .slider{background:var(--success,#16A34A);}
+.toggle-switch input:checked + .slider:before{transform:translateX(20px);}
 </style>
 </head>
 <body>
@@ -834,6 +843,19 @@ async function boot(){
     }catch(e){ /* no valid admin session — fine, show login */ }
   }
 
+  // Support/helpline number shown on the login screen — admin-editable
+  // from Settings. Falls back to the original hardcoded number if the
+  // app_settings table/RPC doesn't exist yet (e.g. this SQL hasn't been
+  // run yet), so nothing breaks on an older database.
+  S.appSettings = { support_phone: '+91 98182 79059', support_label: 'Need help? Contact support —' };
+  try{
+    const { data: appCfg, error: appCfgErr } = await sb.rpc('app_get_settings');
+    if(!appCfgErr && appCfg){
+      S.appSettings.support_phone = appCfg.support_phone || S.appSettings.support_phone;
+      S.appSettings.support_label = appCfg.support_label || S.appSettings.support_label;
+    }
+  }catch(e){ /* app_settings not set up yet — keep the fallback above */ }
+
   S.booted = true;
 }
 
@@ -951,8 +973,8 @@ function renderLogin(app){
         </form>
         ${role==='student'?`<p style="font-size:12px;color:var(--text2);margin-top:16px;">Your Student ID and password are provided by your institute administrator.</p>`:''}
         <div style="margin-top:22px;padding-top:16px;border-top:1px solid var(--border);font-size:12.5px;color:var(--text2);text-align:center;">
-          Need help? Contact support —
-          <a href="tel:+919818279059" style="color:var(--blue);text-decoration:none;">📞 +91 98182 79059</a>
+          ${esc(S.appSettings?.support_label || 'Need help? Contact support —')}
+          <a href="tel:${esc((S.appSettings?.support_phone||'').replace(/[^+\d]/g,''))}" style="color:var(--blue);text-decoration:none;">📞 ${esc(S.appSettings?.support_phone || '+91 98182 79059')}</a>
         </div>
       </div>
     </div>
@@ -1767,6 +1789,7 @@ async function adminTests(root){
           ${t.status==='draft'? `<button class="btn btn-sm btn-outline" onclick="continueTestWizard('${t.id}')">Continue Setup</button>`:''}
           ${t.status!=='draft'? `<button class="btn btn-sm btn-outline" onclick="openManagePartsModal('${t.id}')">Manage Parts</button>`:''}
           ${t.status!=='draft'? `<button class="btn btn-sm btn-outline" onclick="openManageAttemptsModal('${t.id}','${esc(t.name)}')">Manage Attempts</button>`:''}
+          <button class="btn btn-sm btn-ghost" onclick="openResultSettingsModal('${t.id}','${esc(t.name)}')">🏆 Result &amp; Ranking</button>
           <button class="btn btn-sm btn-ghost" onclick="openEligibleBatchesModal('${t.id}','${esc(t.name)}')">Eligible Batches</button>
           <button class="btn btn-sm btn-ghost" onclick="cloneTest('${t.id}','${esc(t.name)}')">📋 Clone</button>
           <button class="btn btn-sm btn-ghost" onclick="openEditInstructionsModal('${t.id}')">Edit Instructions</button>
@@ -1821,6 +1844,63 @@ window.openEligibleBatchesModal = async(testId, testName)=>{
     if(error){ toast('Could not save: '+error.message,'err'); return; }
     await logAudit('Set Eligible Batches', `test=${testName} batches=${selected.length||'ALL'}`);
     toast(selected.length? `Restricted to ${selected.length} batch(es)` : 'Now open to all students','ok');
+    closeModal();
+  };
+};
+
+// Quick, standalone toggle for "Results visible to students" and "National
+// ranking enabled" — reachable for a test in ANY status (draft, scheduled,
+// live, or closed), unlike the full wizard which only reopens for drafts.
+// This is exactly the workflow real exams need: keep ranking OFF while the
+// test is still live (so an early finisher can't see a leaderboard that's
+// still filling up / could still change), then flip it ON once every
+// student is done, without touching anything else about the test.
+window.openResultSettingsModal = async(testId, testName)=>{
+  const [{ data: test, error: tErr }, { data: settings, error: sErr }] = await Promise.all([
+    sb.rpc('admin_get_test', {p_test_id: testId}),
+    sb.rpc('admin_get_test_settings', {p_test_id: testId}),
+  ]);
+  if(tErr || sErr){ toast('Could not load test settings: '+(tErr||sErr).message,'err'); return; }
+  const sAt = settings?.start_at? new Date(settings.start_at) : null;
+  const eAt = settings?.end_at? new Date(settings.end_at) : null;
+  const rs = {
+    resultsVisible: settings?.results_visible ?? true,
+    rankingEnabled: settings?.ranking_enabled ?? true,
+  };
+  // Everything else is carried through UNCHANGED from the current live
+  // settings — this modal only ever touches the two toggles above.
+  const unchanged = {
+    name: test.name, description: test.description||null, instructions: test.instructions||null,
+    startAt: sAt? sAt.toISOString() : null, endAt: eAt? eAt.toISOString() : null,
+    maxAttempts: settings?.max_attempts ?? 1, marksPerQuestion: settings?.marks_per_question ?? 1,
+    negativeMarking: settings?.negative_marking ?? 0.25, tabSwitchLimit: settings?.tab_switch_limit ?? 3,
+    fullscreenRequired: settings?.fullscreen_required ?? true, disableCopyPaste: settings?.disable_copy_paste ?? true,
+    showCorrectAnswers: settings?.show_correct_answers ?? true, showExplanations: settings?.show_explanations ?? true,
+    allowReview: settings?.allow_review ?? true, aiMentorEnabled: settings?.ai_mentor_enabled ?? true,
+  };
+  openModal(`Result &amp; Ranking — ${esc(testName)}`, `
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Common workflow: keep ranking <b>Off</b> while the test is still live, then switch it <b>On</b> once everyone has finished — so students only see the leaderboard after the exam is truly over, not a leaderboard that's still changing.</p>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="field">${toggleHTML2('rs_results', rs.resultsVisible, 'Results visible to students')}</div>
+      <div class="field">${toggleHTML2('rs_rank', rs.rankingEnabled, 'National ranking enabled')}</div>
+    </div>
+    <button class="btn btn-primary btn-block" id="saveResultSettingsBtn" style="margin-top:18px;">Save</button>
+  `, 560);
+  bindToggle2('rs_results', rs, 'resultsVisible');
+  bindToggle2('rs_rank', rs, 'rankingEnabled');
+  $('#saveResultSettingsBtn').onclick=async()=>{
+    const { error } = await sb.rpc('admin_update_test_settings', {
+      p_test_id: testId, p_name: unchanged.name, p_description: unchanged.description, p_instructions: unchanged.instructions,
+      p_start_at: unchanged.startAt, p_end_at: unchanged.endAt,
+      p_max_attempts: unchanged.maxAttempts, p_marks_per_question: unchanged.marksPerQuestion, p_negative_marking: unchanged.negativeMarking,
+      p_tab_switch_limit: unchanged.tabSwitchLimit, p_fullscreen_required: unchanged.fullscreenRequired, p_disable_copy_paste: unchanged.disableCopyPaste,
+      p_results_visible: rs.resultsVisible, p_ranking_enabled: rs.rankingEnabled,
+      p_show_correct_answers: unchanged.showCorrectAnswers, p_show_explanations: unchanged.showExplanations, p_allow_review: unchanged.allowReview,
+      p_ai_mentor_enabled: unchanged.aiMentorEnabled,
+    });
+    if(error){ toast('Could not save: '+error.message,'err'); return; }
+    await logAudit('Update Result & Ranking Visibility', `${testName} — results:${rs.resultsVisible} ranking:${rs.rankingEnabled}`);
+    toast('Saved','ok');
     closeModal();
   };
 };
@@ -2225,15 +2305,23 @@ function renderWizardStep(){
   }
 }
 function toggleHTML2(id,on,label){
-  return `<div class="toggle-wrap"><div class="toggle ${on?'on':''}" id="${id}"></div><span style="font-size:13px;font-weight:600;">${label} — <b style="color:${on?'var(--success)':'var(--error)'}">${on?'On':'Off'}</b></span></div>`;
+  // A real checkbox input wrapped in a label tag: native, always
+  // clickable/tappable anywhere in the row, and keyboard-accessible,
+  // styled as a pill switch via the toggle-switch CSS above. The old
+  // version used a plain empty div with a "toggle" class that had no
+  // matching CSS rule anywhere in the stylesheet, so it rendered with
+  // zero visible/clickable area — this replaces that everywhere it's used.
+  return `<label style="display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;">
+    <span class="toggle-switch"><input type="checkbox" id="${id}" ${on?'checked':''}><span class="slider"></span></span>
+    <span style="font-size:13px;font-weight:600;">${label} — <b id="${id}_lbl" style="color:${on?'var(--success)':'var(--error)'}">${on?'On':'Off'}</b></span>
+  </label>`;
 }
 function bindToggle2(id,w,key){
   const el = $('#'+id); if(!el) return;
-  el.onclick=()=>{
-    w[key]=!w[key];
-    el.classList.toggle('on',w[key]);
-    const b = el.nextElementSibling.querySelector('b');
-    b.textContent = w[key]?'On':'Off'; b.style.color = w[key]?'var(--success)':'var(--error)';
+  el.onchange=()=>{
+    w[key]=el.checked;
+    const b = $('#'+id+'_lbl');
+    if(b){ b.textContent = w[key]?'On':'Off'; b.style.color = w[key]?'var(--success)':'var(--error)'; }
   };
 }
 function renderPartsRows(){
@@ -2711,11 +2799,34 @@ async function adminSettings(root){
       <h4 style="font-size:15px;margin-bottom:6px;">Admin account</h4>
       <p style="font-size:13px;color:var(--text2);">There is only one Admin account on this platform (managed via Supabase Authentication). It cannot be changed from this panel.</p>
     </div>
+    <div class="card pad" style="max-width:640px;margin-bottom:16px;">
+      <h4 style="font-size:15px;margin-bottom:6px;">Support / helpline number</h4>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">Shown on the login screen to every student and admin. Change it here — no code edit needed.</p>
+      <div class="field"><label>Label text</label><input id="stg_support_label" value="${esc(S.appSettings?.support_label||'')}" placeholder="Need help? Contact support —"></div>
+      <div class="field"><label>Phone number</label><input id="stg_support_phone" value="${esc(S.appSettings?.support_phone||'')}" placeholder="+91 98182 79059"></div>
+      <button class="btn btn-primary btn-sm" id="saveSupportSettingsBtn" style="margin-top:6px;">Save</button>
+      <div id="supportSettingsMsg" style="font-size:12px;color:var(--text2);margin-top:8px;"></div>
+    </div>
     <div class="card pad" style="max-width:640px;">
       <h4 style="font-size:15px;margin-bottom:6px;">Exam settings</h4>
-      <p style="font-size:13px;color:var(--text2);">Duration, marking scheme, result visibility, ranking, anti-cheating and other exam rules are configured per-test in the Test wizard (Tests → Create Test), not globally here — different tests can have different rules.</p>
+      <p style="font-size:13px;color:var(--text2);">Duration, marking scheme, anti-cheating and other exam rules are configured per-test in the Test wizard (Tests → Create Test). Result visibility and national ranking can be toggled any time — even after a test has gone live — from Tests → 🏆 Result &amp; Ranking.</p>
     </div>
   `;
+  $('#saveSupportSettingsBtn').onclick=async()=>{
+    const phone = $('#stg_support_phone').value.trim();
+    const label = $('#stg_support_label').value.trim();
+    if(!phone){ toast('Enter a phone number','err'); return; }
+    const { error } = await sb.rpc('admin_update_app_settings', {p_support_phone: phone, p_support_label: label||null});
+    const msg = $('#supportSettingsMsg');
+    if(error){
+      if(msg) msg.innerHTML = `<span style="color:var(--error)">Could not save: ${esc(error.message)} — make sure the app_settings SQL has been run in Supabase.</span>`;
+      toast('Could not save: '+error.message,'err'); return;
+    }
+    S.appSettings.support_phone = phone; S.appSettings.support_label = label || S.appSettings.support_label;
+    await logAudit('Update Support Settings', phone);
+    if(msg) msg.innerHTML = `<span style="color:var(--success)">Saved ✓</span>`;
+    toast('Support number updated','ok');
+  };
 }
 
 // ---------- ADMIN: Audit Logs (real Supabase-backed) ----------
