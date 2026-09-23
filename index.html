@@ -1236,6 +1236,7 @@ async function adminStudents(root){
         <span>${selCount} student(s) selected</span>
         <div style="display:flex;gap:8px;">
           <button class="btn btn-primary btn-sm" id="bulkAssignBatchBtn">🏷 Assign to Batch</button>
+          <button class="btn btn-danger btn-sm" id="bulkDeleteStuBtn">🗑 Delete Selected</button>
           <button class="btn btn-ghost btn-sm" id="clearStuSelBtn">Clear selection</button>
         </div>
       </div>` : ''}
@@ -1253,6 +1254,7 @@ async function adminStudents(root){
             <button class="btn btn-sm btn-outline" onclick="viewStudentProfile('${s.id}')">Profile</button>
             <button class="btn btn-sm btn-ghost" onclick="editStudent('${s.id}')">Edit</button>
             <button class="btn btn-sm btn-danger" onclick="toggleStudentStatus('${s.id}','${s.status}')">${s.status==='Active'?'Disable':'Enable'}</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteStudent('${s.id}','${esc(s.name)}')">🗑 Delete</button>
           </div></td></tr>`).join('') : `<tr><td colspan="7"><div class="empty-state">No students yet. Use <b>Add Student</b> or <b>Bulk Upload</b> — Student ID and password come only from what you enter here.</div></td></tr>`}
         </tbody>
       </table></div>
@@ -1271,6 +1273,7 @@ async function adminStudents(root){
     });
     const clearBtn = $('#clearStuSelBtn'); if(clearBtn) clearBtn.onclick=()=>{ S.stuSelected.clear(); renderAdminSection($('#adminMain')); };
     const bulkBtn = $('#bulkAssignBatchBtn'); if(bulkBtn) bulkBtn.onclick=()=>openBulkAssignBatchModal();
+    const bulkDelBtn = $('#bulkDeleteStuBtn'); if(bulkDelBtn) bulkDelBtn.onclick=()=>bulkDeleteStudents();
   }catch(err){
     root.innerHTML = `<div class="empty-state">Something went wrong loading students: ${esc(err.message||String(err))}</div>`;
     console.error('adminStudents error', err);
@@ -1307,6 +1310,36 @@ async function openBulkAssignBatchModal(){
     closeModal();
     renderAdminSection($('#adminMain'));
   };
+}
+// Permanently removes a student — different from Disable (blocks access
+// but keeps them + their history) and different from batch-unassign
+// (only removes them from a batch). If a student already has exam
+// attempts on record, admin_delete_student refuses and asks the admin
+// to Disable instead, so real exam data is never silently orphaned.
+window.deleteStudent = async(id, name)=>{
+  confirmModal(`Permanently delete "${name}"? This removes the student account entirely — this cannot be undone. If they've already attempted an exam, deletion will be blocked automatically (use Disable instead in that case).`, async()=>{
+    const { error } = await sb.rpc('admin_delete_student', {p_student_uuid: id});
+    if(error){ toast('Could not delete: '+error.message,'err'); return; }
+    await logAudit('Delete Student', `${name} (${id})`);
+    S.stuSelected.delete(id);
+    toast('Student deleted','ok');
+    renderAdminSection($('#adminMain'));
+  }, {okLabel:'Delete permanently'});
+};
+async function bulkDeleteStudents(){
+  const ids = Array.from(S.stuSelected);
+  if(!ids.length) return;
+  confirmModal(`Permanently delete ${ids.length} selected student(s)? This cannot be undone. Any student who has already attempted an exam will be skipped automatically (their account stays — use Disable for those instead).`, async()=>{
+    let ok=0, fail=0;
+    for(let i=0;i<ids.length;i++){
+      const { error } = await sb.rpc('admin_delete_student', {p_student_uuid: ids[i]});
+      if(error) fail++; else ok++;
+    }
+    await logAudit('Bulk Delete Students', `${ok} deleted, ${fail} skipped (had exam attempts or other error)`);
+    toast(`${ok} student(s) deleted${fail?`, ${fail} skipped (already have exam attempts)`:''}`, fail? 'err':'ok');
+    S.stuSelected.clear();
+    renderAdminSection($('#adminMain'));
+  }, {okLabel:'Delete permanently'});
 }
 async function openManageBatchesModal(){
   const { data: batches, error } = await sb.rpc('admin_list_batches');
