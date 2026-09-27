@@ -643,7 +643,13 @@ html[data-theme="dark"] .subj-filter-tab.active{color:var(--text);}
   .medmind-fab{right:14px;bottom:14px;}
 }
 @media(max-width:900px){
-  .fab-palette-btn{display:flex;position:fixed;bottom:112px;right:16px;z-index:65;background:var(--navy);color:#fff;border-radius:100px;padding:11px 18px;font-weight:700;font-size:12.5px;align-items:center;gap:6px;box-shadow:var(--shadow-lg);border:none;}
+  /* bottom is the real, measured height of the exam toolbar (set from JS via
+     --exam-toolbar-h) plus a gap — NOT a guessed fixed number. The toolbar's
+     buttons (Previous/Clear/Mark/Save/Submit) wrap onto 1-3 lines depending
+     on screen width and font size, so a fixed offset would eventually sit
+     right on top of Submit Section on narrower phones. The 112px is only a
+     fallback for the instant before JS measures it. */
+  .fab-palette-btn{display:flex;position:fixed;bottom:calc(var(--exam-toolbar-h, 112px) + 14px);right:16px;z-index:65;background:var(--navy);color:#fff;border-radius:100px;padding:11px 18px;font-weight:700;font-size:12.5px;align-items:center;gap:6px;box-shadow:var(--shadow-lg);border:none;transition:bottom .15s ease;}
 }
 
 .result-score{font-family:'Manrope';font-weight:800;font-size:52px;color:var(--navy);}
@@ -6282,8 +6288,10 @@ async function studentErrorBook(root){
   const all = data.questions || [];
   const bookmarkedSet = new Set(bookmarkedIds||[]);
   const subjects = [...new Set(all.map(q=>q.subject))].sort();
+  const examCodes = [...new Set(all.map(q=>q.exam_code).filter(Boolean))].sort();
   const activeSubj = S.errorBookSubject || '';
-  const list = activeSubj? all.filter(q=>q.subject===activeSubj) : all;
+  const activeExam = S.errorBookExam || '';
+  const list = all.filter(q=>(!activeSubj || q.subject===activeSubj) && (!activeExam || q.exam_code===activeExam));
   if(!S.errorBookRevealed) S.errorBookRevealed = new Set();
 
   root.innerHTML = `
@@ -6293,7 +6301,11 @@ async function studentErrorBook(root){
       ${all.length? `<span class="badge badge-error" style="font-size:12.5px;padding:6px 12px;">${all.length} to review</span>`:''}
     </div>
     ${all.length? `
-    <div class="table-toolbar" style="margin-bottom:14px;">
+    <div class="table-toolbar" style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap;">
+      ${examCodes.length>1? `<select id="ebExamFilter">
+        <option value="">All Exams (${all.length})</option>
+        ${examCodes.map(c=>`<option value="${esc(c)}" ${activeExam===c?'selected':''}>${esc(examLabel(c))} (${all.filter(q=>q.exam_code===c).length})</option>`).join('')}
+      </select>` : ''}
       <select id="ebSubjFilter">
         <option value="">All Subjects (${all.length})</option>
         ${subjects.map(s=>`<option value="${esc(s)}" ${activeSubj===s?'selected':''}>${esc(s)} (${all.filter(q=>q.subject===s).length})</option>`).join('')}
@@ -6302,7 +6314,7 @@ async function studentErrorBook(root){
     ${list.map(q=>{
       const revealed = S.errorBookRevealed.has(q.question_id);
       return `<div class="qcard">
-        <div class="qmeta"><span class="badge badge-blue">${esc(q.subject)}</span>${q.times_wrong>1?`<span class="badge badge-error">Wrong ${q.times_wrong}x</span>`:''}</div>
+        <div class="qmeta">${q.exam_code?`<span class="badge badge-grey">${esc(examLabel(q.exam_code))}</span>`:''}<span class="badge badge-blue">${esc(q.subject)}</span>${q.times_wrong>1?`<span class="badge badge-error">Wrong ${q.times_wrong}x</span>`:''}</div>
         <p style="font-size:14px;margin-bottom:10px;">${esc(q.text)}</p>
         ${q.image_url?`<img class="qimg" src="${esc(q.image_url)}" style="max-width:280px;" onclick="openImageZoom('${esc(q.image_url)}')">`:''}
         ${['a','b','c','d'].filter(k=>q['option_'+k]).map(k=>{
@@ -6324,6 +6336,15 @@ async function studentErrorBook(root){
   wireBookmarkButtons(Object.fromEntries(all.map(q=>[q.question_id, q])));
   const filt = $('#ebSubjFilter');
   if(filt) filt.onchange=(e)=>{ S.errorBookSubject = e.target.value; renderStudentPage(root); };
+  const examFilt = $('#ebExamFilter');
+  if(examFilt) examFilt.onchange=(e)=>{ S.errorBookExam = e.target.value; renderStudentPage(root); };
+}
+// Friendly display label for an exam_code value — the app currently only
+// has FMGE / NEET_PG tests; anything else (or missing/untagged) falls back
+// to showing the raw code, or "Other" if there's nothing to show at all.
+function examLabel(code){
+  if(code==='NEET_PG') return 'NEET PG';
+  return code || 'Other';
 }
 // A bookmark is a lightweight "revise this later" flag a student can put on
 // ANY question while reviewing a result or the Error Book — independent of
@@ -6342,24 +6363,25 @@ window.toggleBookmark = async(q, btnEl)=>{
     p_option_a: q.option_a||null, p_option_b: q.option_b||null,
     p_option_c: q.option_c||null, p_option_d: q.option_d||null,
     p_correct_letter: q.correct||null, p_explanation: q.explanation||null,
+    p_exam_code: q.exam_code||null,
   });
   if(btnEl) btnEl.disabled = false;
   if(error){
-    toast('Could not update bookmark — this feature may not be set up on the server yet.','err');
+    toast('Could not update Marked for Review — this feature may not be set up on the server yet.','err');
     return;
   }
   if(btnEl){
     btnEl.classList.toggle('active', !!data);
-    btnEl.textContent = data? '🔖 Bookmarked' : '🔖 Bookmark';
+    btnEl.textContent = data? '🚩 Marked' : '🚩 Mark for Review';
   }
-  toast(data? 'Bookmarked for revision' : 'Removed from bookmarks', 'ok');
-  // On the My Bookmarks page itself, removing one should drop it from the
-  // visible list right away rather than leaving a stale "Bookmarked" card.
+  toast(data? 'Marked for review' : 'Removed from Marked for Review', 'ok');
+  // On the Marked for Review page itself, removing one should drop it from
+  // the visible list right away rather than leaving a stale card.
   if(!data && S.studentPage==='bookmarks'){ studentBookmarks($('#stuContent')); }
 };
 function bookmarkButtonHTML(q, isBookmarked){
   if(!q.question_id) return '';
-  return `<button type="button" class="btn btn-sm btn-outline bookmark-btn ${isBookmarked?'active':''}" data-bm-qid="${esc(q.question_id)}">${isBookmarked? '🔖 Bookmarked' : '🔖 Bookmark'}</button>`;
+  return `<button type="button" class="btn btn-sm btn-outline bookmark-btn ${isBookmarked?'active':''}" data-bm-qid="${esc(q.question_id)}">${isBookmarked? '🚩 Marked' : '🚩 Mark for Review'}</button>`;
 }
 // Wires up every bookmark-btn[data-bm-qid] currently in the DOM against a
 // map of {question_id: questionObject} — used after any page that renders
@@ -6372,23 +6394,29 @@ function wireBookmarkButtons(questionsById){
   });
 }
 async function studentBookmarks(root){
-  root.innerHTML = `<div class="empty-state">Loading your bookmarks…</div>`;
+  root.innerHTML = `<div class="empty-state">Loading your marked questions…</div>`;
   const { data, error } = await sb.rpc('student_list_bookmarks', {p_student_id: S.currentUser.id});
-  if(error){ root.innerHTML = `<div class="empty-state">Could not load bookmarks: ${esc(error.message)}<br><span style="font-size:12px;color:var(--text2);">If this is the first time, the bookmark feature may not be set up on the server yet.</span></div>`; return; }
+  if(error){ root.innerHTML = `<div class="empty-state">Could not load your marked questions: ${esc(error.message)}<br><span style="font-size:12px;color:var(--text2);">If this is the first time, this feature may not be set up on the server yet.</span></div>`; return; }
   const all = data || [];
   const subjects = [...new Set(all.map(q=>q.subject).filter(Boolean))].sort();
+  const examCodes = [...new Set(all.map(q=>q.exam_code).filter(Boolean))].sort();
   const activeSubj = S.bookmarksSubject || '';
-  const list = activeSubj? all.filter(q=>q.subject===activeSubj) : all;
+  const activeExam = S.bookmarksExam || '';
+  const list = all.filter(q=>(!activeSubj || q.subject===activeSubj) && (!activeExam || q.exam_code===activeExam));
   if(!S.bookmarksRevealed) S.bookmarksRevealed = new Set();
 
   root.innerHTML = `
     <button class="btn btn-ghost btn-sm" style="margin-bottom:14px;" onclick="S.studentPage='dashboard';render();">← Back to Dashboard</button>
     <div class="dash-section-head fade-in-up">
-      <div><span class="dash-eyebrow">SAVED FOR REVISION</span><h3>My Bookmarks</h3><p style="font-size:13px;color:var(--text2);margin-top:4px;">Questions you flagged for later — from any test result or your Error Book.</p></div>
-      ${all.length? `<span class="badge badge-warning" style="font-size:12.5px;padding:6px 12px;">${all.length} saved</span>`:''}
+      <div><span class="dash-eyebrow">SAVED FOR REVISION</span><h3>Marked for Review</h3><p style="font-size:13px;color:var(--text2);margin-top:4px;">Questions you flagged for later — marked for review during an exam, or from any test result or your Error Book.</p></div>
+      ${all.length? `<span class="badge badge-warning" style="font-size:12.5px;padding:6px 12px;">${all.length} marked</span>`:''}
     </div>
     ${all.length? `
-    <div class="table-toolbar" style="margin-bottom:14px;">
+    <div class="table-toolbar" style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap;">
+      ${examCodes.length>1? `<select id="bmExamFilter">
+        <option value="">All Exams (${all.length})</option>
+        ${examCodes.map(c=>`<option value="${esc(c)}" ${activeExam===c?'selected':''}>${esc(examLabel(c))} (${all.filter(q=>q.exam_code===c).length})</option>`).join('')}
+      </select>` : ''}
       <select id="bmSubjFilter">
         <option value="">All Subjects (${all.length})</option>
         ${subjects.map(s=>`<option value="${esc(s)}" ${activeSubj===s?'selected':''}>${esc(s)} (${all.filter(q=>q.subject===s).length})</option>`).join('')}
@@ -6397,7 +6425,7 @@ async function studentBookmarks(root){
     ${list.map(q=>{
       const revealed = S.bookmarksRevealed.has(q.question_id);
       return `<div class="qcard">
-        <div class="qmeta"><span class="badge badge-blue">${esc(q.subject||'—')}</span></div>
+        <div class="qmeta">${q.exam_code?`<span class="badge badge-grey">${esc(examLabel(q.exam_code))}</span>`:''}<span class="badge badge-blue">${esc(q.subject||'—')}</span></div>
         <p style="font-size:14px;margin-bottom:10px;">${esc(q.question_text||'')}</p>
         ${['a','b','c','d'].filter(k=>q['option_'+k]).map(k=>{
           const K = k.toUpperCase();
@@ -6409,21 +6437,23 @@ async function studentBookmarks(root){
         ${revealed? (q.explanation? `<div style="margin-top:8px;padding:10px;background:#F9FAFB;border-radius:8px;font-size:13px;"><b>Explanation:</b> ${esc(q.explanation)}</div>`:'')
           : `<button class="btn btn-outline btn-sm" style="margin-top:10px;" onclick="S.bookmarksRevealed.add('${q.question_id}'); renderStudentPage($('#stuContent'));">Show Answer &amp; Explanation</button>`}
         <div style="margin-top:10px;">
-          <button type="button" class="btn btn-sm btn-outline bookmark-btn active" data-bm-id="${esc(q.question_id)}">🔖 Remove Bookmark</button>
+          <button type="button" class="btn btn-sm btn-outline bookmark-btn active" data-bm-id="${esc(q.question_id)}">🚩 Remove from Marked for Review</button>
         </div>
       </div>`;
     }).join('')}
-    ` : `<div class="empty-state">No bookmarked questions yet — while reviewing a result or your Error Book, tap 🔖 Bookmark on any question to save it here.</div>`}
+    ` : `<div class="empty-state">No marked questions yet — mark a question for review during an exam, or while reviewing a result or your Error Book, tap 🚩 Mark for Review on any question to save it here.</div>`}
   `;
   const filt2 = $('#bmSubjFilter');
   if(filt2) filt2.onchange=(e)=>{ S.bookmarksSubject = e.target.value; renderStudentPage(root); };
+  const examFilt2 = $('#bmExamFilter');
+  if(examFilt2) examFilt2.onchange=(e)=>{ S.bookmarksExam = e.target.value; renderStudentPage(root); };
   $$('.bookmark-btn[data-bm-id]').forEach(btn=>{
     btn.onclick = ()=>{
       const row = all.find(q=>q.question_id===btn.dataset.bmId);
       if(!row) return;
       toggleBookmark({ question_id:row.question_id, text:row.question_text, subject:row.subject,
         option_a:row.option_a, option_b:row.option_b, option_c:row.option_c, option_d:row.option_d,
-        correct:row.correct_letter, explanation:row.explanation }, btn);
+        correct:row.correct_letter, explanation:row.explanation, exam_code:row.exam_code }, btn);
     };
   });
 }
@@ -6629,9 +6659,8 @@ function sectionStartable(sections, idx){
 
 async function studentDashboard(root){
   root.innerHTML = `<div class="empty-state">Loading your dashboard…</div>`;
-  const [{ data, error }, { data: analyticsData }, { data: bookmarkIds }] = await Promise.all([
+  const [{ data, error }, { data: bookmarkIds }] = await Promise.all([
     sb.rpc('student_get_dashboard', {p_token: S.studentToken}),
-    sb.rpc('student_get_analytics', {p_token: S.studentToken}),
     sb.rpc('student_list_bookmarked_question_ids', {p_student_id: S.currentUser.id}),
   ]);
   const bookmarkCount = (bookmarkIds||[]).length;
@@ -6644,6 +6673,19 @@ async function studentDashboard(root){
   const tests = (data.tests||[]);
   const firstName = esc(S.currentUser.name.split(' ')[0]);
   const testsCompleted = tests.filter(t=>t.attempt_status==='submitted').length;
+  // student_get_analytics is scoped PER EXAM (same as the Analytics page's
+  // FMGE / NEET PG tabs) — it always needs p_exam_code, which this call was
+  // never sending. That made the RPC fail every time, and the error was
+  // never checked, so "Average accuracy" silently showed "—" forever no
+  // matter how many tests were completed. Fixed by picking whichever exam
+  // the student has the most submitted tests in (falls back to FMGE for a
+  // brand-new student with nothing submitted yet), and by actually checking
+  // this call's error instead of discarding it.
+  const examCodeCounts = {};
+  tests.filter(t=>t.attempt_status==='submitted').forEach(t=>{ examCodeCounts[t.exam_code] = (examCodeCounts[t.exam_code]||0) + 1; });
+  const primaryExamCode = Object.keys(examCodeCounts).sort((a,b)=>examCodeCounts[b]-examCodeCounts[a])[0] || 'FMGE';
+  const { data: analyticsData, error: analyticsErr } = await sb.rpc('student_get_analytics', {p_token: S.studentToken, p_exam_code: primaryExamCode, p_test_id: null});
+  if(analyticsErr && isSessionInvalidError(analyticsErr)){ handleSessionKickedOut(); return; }
   const avgAccuracy = analyticsData?.overall?.avg_accuracy;
   const bestRanks = data.best_ranks || [];
   const bestRankFor = code => bestRanks.find(r=>r.exam_code===code)?.rank;
@@ -6715,7 +6757,7 @@ async function studentDashboard(root){
                 : `<div style="font-size:13px;color:var(--gld-text-muted);">${overallPct>=100?'All parts complete':'Not yet open'}</div>`}
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
-              ${finished? `<button class="gld-btn gld-btn-light-outline" onclick="viewMyResult('${t.attempt_id}')">View result ›</button>`:''}
+              ${finished? `<button class="gld-btn gld-btn-light-outline" onclick="viewMyResult('${t.attempt_id}','${t.exam_code}')">View result ›</button>`:''}
               ${currentPart? (currentNext.st.state==='resume'?
                   `<button class="gld-btn gld-btn-primary-gradient" onclick="startSection('${currentNext.s.id}', '${t.id}', '${currentPart.id}')">Continue exam ›</button>`
                   : `<button class="gld-btn gld-btn-primary-gradient" onclick='goToSectionInstructions(${JSON.stringify(currentNext.s.id)}, ${JSON.stringify(t.name)}, ${JSON.stringify(t.instructions||'')}, ${JSON.stringify(t.id)}, ${JSON.stringify(currentPart.id)})'>${finished?'Start new attempt':'Start exam'} ›</button>`)
@@ -6755,7 +6797,7 @@ async function studentDashboard(root){
       <div class="gld-stat-card" style="animation-delay:.1s;"><div class="gld-stat-icon-wrapper" style="background:#e0f2fe;color:#0284c7;">⏱</div><div class="gld-stat-info"><div class="gld-stat-number" style="${avgAccuracy==null?'color:var(--gld-text-muted);':''}">${avgAccuracy!=null? avgAccuracy+'%' : '—'}</div><div class="gld-stat-desc">Average accuracy</div></div></div>
       <div class="gld-stat-card" style="animation-delay:.14s;"><div class="gld-stat-icon-wrapper" style="background:var(--gld-accent-light);color:var(--gld-accent);">🏆</div><div class="gld-stat-info"><div class="gld-stat-number" style="${bestRankOverall?'color:var(--gld-accent);':''}">${bestRankOverall? '#'+bestRankOverall : '—'}</div><div class="gld-stat-desc">Best national rank</div></div></div>
       <div class="gld-stat-card" style="animation-delay:.18s;cursor:pointer;" onclick="S.studentPage='errorbook';render();"><div class="gld-stat-icon-wrapper" style="background:var(--gld-danger-light);color:var(--gld-danger);">📕</div><div class="gld-stat-info"><div class="gld-stat-number" style="color:var(--gld-danger);">${data.error_count||0}</div><div class="gld-stat-desc">Error book</div></div></div>
-      <div class="gld-stat-card" style="animation-delay:.22s;cursor:pointer;" onclick="S.studentPage='bookmarks';render();"><div class="gld-stat-icon-wrapper" style="background:#fef3c7;color:#b45309;">🔖</div><div class="gld-stat-info"><div class="gld-stat-number" style="color:#b45309;">${bookmarkCount}</div><div class="gld-stat-desc">Bookmarked</div></div></div>
+      <div class="gld-stat-card" style="animation-delay:.22s;cursor:pointer;" onclick="S.studentPage='bookmarks';render();"><div class="gld-stat-icon-wrapper" style="background:#fef3c7;color:#b45309;">🚩</div><div class="gld-stat-info"><div class="gld-stat-number" style="color:#b45309;">${bookmarkCount}</div><div class="gld-stat-desc">Marked for Review</div></div></div>
     </div>
 
     ${S.appSettings?.rank_predictor_live!==false ? `
@@ -7039,7 +7081,7 @@ window.startSection = async(sectionId, testId, partId)=>{
   S.studentPage='exam';
   render();
 };
-window.viewMyResult = (attemptId)=>{ S.viewingResultAttemptId = attemptId; S.aiChatHistory = []; S.studentPage='result'; render(); };
+window.viewMyResult = (attemptId, examCode)=>{ S.viewingResultAttemptId = attemptId; S.viewingResultExamCode = examCode||null; S.aiChatHistory = []; S.studentPage='result'; render(); };
 
 // =========================================================================
 // EXAM ENGINE — one Section at a time, server-authoritative timer
@@ -7170,6 +7212,27 @@ async function renderExamEngine(app){
   if(fab) fab.onclick=()=>setPaletteOpen(!S.paletteOpen);
   const paletteCloseBtn = $('#paletteCloseBtn'); if(paletteCloseBtn) paletteCloseBtn.onclick=()=>setPaletteOpen(false);
   const paletteBackdrop = $('#paletteBackdrop'); if(paletteBackdrop) paletteBackdrop.onclick=()=>setPaletteOpen(false);
+
+  // Keep the floating "Palette" button pinned just above the bottom
+  // toolbar, whatever height that toolbar actually ends up at. On a
+  // narrow phone the toolbar's buttons (Previous/Clear/Mark/Save/Submit)
+  // can wrap onto 2 or even 3 lines — a fixed pixel offset would then let
+  // the Palette button drift down onto/over Submit Section. This measures
+  // the real toolbar height and re-measures whenever it changes (rotation,
+  // font-size settings, a button's label changing e.g. "Save"→"Save & Next").
+  if(S._examToolbarRO){ try{ S._examToolbarRO.disconnect(); }catch(e){} S._examToolbarRO = null; }
+  const toolbarEl = $('.exam-toolbar');
+  if(toolbarEl){
+    const updateToolbarHeight = ()=>{ document.documentElement.style.setProperty('--exam-toolbar-h', toolbarEl.offsetHeight+'px'); };
+    updateToolbarHeight();
+    if(window.ResizeObserver){
+      const ro = new ResizeObserver(updateToolbarHeight);
+      ro.observe(toolbarEl);
+      S._examToolbarRO = ro;
+    } else {
+      window.addEventListener('resize', updateToolbarHeight);
+    }
+  }
 
   startExamTicker(app);
   startHeartbeat(sec.attemptSectionId);
@@ -7928,7 +7991,7 @@ async function studentResult(root){
     </div>
   `;
   const reviewBtn = $('#reviewBtn');
-  if(reviewBtn) reviewBtn.onclick=()=>{ S.reviewDetail = data.detail; S.reviewTestName = data.test_name||''; S.reviewFilter='all'; S.studentPage='review'; render(); };
+  if(reviewBtn) reviewBtn.onclick=()=>{ S.reviewDetail = data.detail; S.reviewTestName = data.test_name||''; S.reviewExamCode = S.viewingResultExamCode||null; S.reviewFilter='all'; S.studentPage='review'; render(); };
   $('#backToDashBtn').onclick=()=>{ S.studentPage='dashboard'; render(); };
   const glrAnalyticsLink = $('#glrAnalyticsLink');
   if(glrAnalyticsLink) glrAnalyticsLink.onclick=(e)=>{ e.preventDefault(); S.studentPage='analytics'; render(); };
@@ -8056,11 +8119,39 @@ async function studentResult(root){
 }
 async function studentReview(root){
   const detail = S.reviewDetail || [];
+  // Tag every question with the exam this attempt belongs to (captured when
+  // "View result" was clicked from the Dashboard) — needed so a question
+  // auto-marked or manually bookmarked from this page carries its exam,
+  // for the Marked for Review page's exam filter.
+  detail.forEach(d=>{ if(d.exam_code===undefined) d.exam_code = S.reviewExamCode||null; });
   const markedQs = detail.map((d,i)=>({d,i})).filter(x=>x.d.is_marked);
   if(!S.reviewFilter) S.reviewFilter = 'all';
   const showList = S.reviewFilter==='marked' ? markedQs.map(x=>x) : detail.map((d,i)=>({d,i}));
   const { data: bookmarkedIds } = await sb.rpc('student_list_bookmarked_question_ids', {p_student_id: S.currentUser.id});
   const bookmarkedSet = new Set(bookmarkedIds||[]);
+  // Feature: any question the student marked for review during the exam is
+  // automatically carried into "Marked for Review" once they view this
+  // question-wise breakdown — this is the earliest point the correct
+  // answer/explanation (needed to save a full snapshot) is actually
+  // available, since it's deliberately hidden during the exam itself.
+  // Only the ones not already there are added, and failures here are
+  // silent — this is a background convenience, not a blocking action.
+  const toAutoMark = markedQs.map(x=>x.d).filter(d=>d.question_id && !bookmarkedSet.has(d.question_id));
+  if(toAutoMark.length){
+    await Promise.all(toAutoMark.map(async d=>{
+      try{
+        const { data, error } = await sb.rpc('student_toggle_bookmark', {
+          p_student_id: S.currentUser.id, p_question_id: d.question_id,
+          p_question_text: d.text, p_subject: d.subject,
+          p_option_a: d.option_a||null, p_option_b: d.option_b||null,
+          p_option_c: d.option_c||null, p_option_d: d.option_d||null,
+          p_correct_letter: d.correct||null, p_explanation: d.explanation||null,
+          p_exam_code: d.exam_code||null,
+        });
+        if(!error && data) bookmarkedSet.add(d.question_id);
+      }catch(e){}
+    }));
+  }
   root.innerHTML = `
     <div class="no-print" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
       <button class="btn btn-ghost btn-sm" onclick="S.studentPage='result';render();">← Back to Result</button>
