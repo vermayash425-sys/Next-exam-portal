@@ -76,6 +76,12 @@ body{
   transition:background .25s var(--ease), color .25s var(--ease);
   -webkit-tap-highlight-color:transparent;
   overscroll-behavior:none;
+  /* Safety net: no page-level sideways scroll on ANY screen, no matter how
+     narrow — a table that genuinely needs to scroll sideways still can,
+     since .table-wrap (and similar) open their own independent
+     overflow-x:auto scroller inside this; this rule only stops something
+     unaccounted-for from ever widening the whole page. */
+  overflow-x:hidden;
 }
 h1,h2,h3,h4{font-family:'Manrope',sans-serif;font-weight:800;margin:0;color:var(--navy);}
 p{margin:0;}
@@ -477,6 +483,18 @@ tr:last-child td{border-bottom:none;}
 .ia-review-link{background:none;border:none;color:var(--blue,#155EEF);font-weight:700;font-size:12px;cursor:pointer;padding:0;}
 .ia-empty{grid-column:1/-1;}
 @media (max-width:640px){.ia-select{max-width:none;flex:1 1 45%;}}
+/* Item Analysis toolbar on a phone: the vertical dividers only make sense
+   in a single line, so hide them once things wrap, and let the exam
+   picker + search go full-width (their own rows) while the two filter
+   selects share a row and the view toggle gets its own row — clearer than
+   6 pieces wrapping wherever they happen to fit. */
+@media (max-width:600px){
+  .ia-toolbar{gap:8px;}
+  .ia-toolbar .ia-divider{display:none;}
+  #iaExamSel{flex:1 1 100%; max-width:none;}
+  .ia-search-wrap{flex:1 1 100%; min-width:0;}
+  .ia-view-toggle{flex:1 1 100%; justify-content:center;}
+}
 html[data-theme="dark"] .subj-filter-tab.active{color:var(--text);}
 .dash-eyebrow{font-size:11.5px;font-weight:700;color:var(--blue);letter-spacing:.5px;}
 .dash-section-head h3{font-size:19px;margin-top:4px;}
@@ -499,10 +517,10 @@ html[data-theme="dark"] .subj-filter-tab.active{color:var(--text);}
 
 /* ===== EXAM ENGINE ===== */
 .exam-shell{height:100vh;height:100dvh;display:flex;flex-direction:column;background:#EEF1F6;}
-.exam-header{background:var(--navy);color:#fff;padding:0 18px;height:60px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.15);z-index:20;}
+.exam-header{background:var(--navy);color:#fff;padding:8px 18px;min-height:60px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.15);z-index:20;}
 .exam-header .exam-title{font-size:13px;font-weight:700;line-height:1.3;}
 .exam-header .exam-title small{display:block;color:#9FB3D6;font-weight:500;font-size:11px;}
-.timer-box{background:rgba(255,255,255,.08);border-radius:10px;padding:7px 16px;text-align:center;min-width:110px;}
+.timer-box{background:rgba(255,255,255,.08);border-radius:10px;padding:7px 16px;text-align:center;min-width:110px;flex-shrink:0;}
 .timer-box.warn{background:var(--warning);color:#3A2400;}
 .timer-box.crit{background:var(--error);color:#fff;}
 .timer-box .tval{font-family:'Manrope';font-weight:800;font-size:18px;letter-spacing:.5px;}
@@ -518,8 +536,26 @@ html[data-theme="dark"] .subj-filter-tab.active{color:var(--text);}
 .pace-chip.pace-warn .pace-dot{background:var(--warning);}
 .pace-chip.pace-bad .pace-dot{background:var(--error);}
 @media (max-width:760px){ .pace-chip{display:none !important;} }
-.stu-chip{text-align:right;font-size:11.5px;color:#C6D3EE;}
+.stu-chip{text-align:right;font-size:11.5px;color:#C6D3EE;flex-shrink:0;}
 .stu-chip b{color:#fff;font-size:13px;display:block;}
+/* Small phones (~≤430px): the header's 5-6 items (title, timer, save/net
+   status, student chip) no longer fit in one row even with wrapping —
+   the title takes its own full-width row first, then the status/identity
+   items shrink and drop their least-essential text so the timer (the one
+   thing that must never be missed) always has room. Nothing is removed,
+   only condensed — the full name is still shown everywhere else (dashboard,
+   profile), it just isn't needed a second time on the exam screen itself. */
+@media (max-width:640px){
+  .exam-header{padding:8px 14px;}
+  .exam-header .exam-title{flex:1 1 100%; order:-1;}
+  .timer-box{padding:6px 12px;min-width:88px;}
+  .timer-box .tval{font-size:16px;}
+  .save-status,.net-status{font-size:11px !important;padding:3px 8px !important;}
+}
+@media (max-width:420px){
+  .stu-chip b{display:none;}
+  .stu-chip{font-size:11px;}
+}
 
 .section-strip{display:flex;background:var(--card);border-bottom:1px solid var(--border);padding:0 14px;overflow-x:auto;flex-shrink:0;}
 .sec-pill{padding:10px 16px;font-size:12px;font-weight:700;color:var(--text2);border-bottom:3px solid transparent;white-space:nowrap;display:flex;align-items:center;gap:6px;}
@@ -565,8 +601,19 @@ html[data-theme="dark"] .subj-filter-tab.active{color:var(--text);}
   .palette-backdrop.open{display:block;}
   .exam-main{padding:16px 14px 170px;}
   .qbox{padding:18px;}
-  .exam-toolbar{padding:10px 14px;position:fixed;bottom:0;left:0;right:0;}
+  .exam-toolbar{padding:10px 14px calc(10px + env(safe-area-inset-bottom));position:fixed;bottom:0;left:0;right:0;}
   .exam-body{padding-bottom:100px;}
+}
+/* Short-height / landscape phones during an exam: the fixed header + fixed
+   bottom toolbar can otherwise eat most of a ~360-400px-tall viewport,
+   squeezing the question area to almost nothing. Compact both chrome
+   elements specifically when height (not width) is tight. */
+@media (max-height:480px) and (orientation:landscape){
+  .exam-header{min-height:44px;padding:6px 14px;}
+  .exam-header .pace-chip{display:none;}
+  .qbox{padding:12px;}
+  .exam-toolbar{padding:6px 14px calc(6px + env(safe-area-inset-bottom));}
+  .exam-main{padding-bottom:110px;}
 }
 @media(max-width:600px){
   .hero-stats{display:none;}
@@ -1352,7 +1399,7 @@ html[data-theme="dark"] .glr-medmind-card{ background:linear-gradient(180deg, rg
 .gla-kpi-val{ font-family:'Outfit', sans-serif; font-size:28px; font-weight:800; line-height:1.1; color:var(--gld-text); }
 .gla-kpi-lbl{ font-size:13px; font-weight:600; color:var(--gld-text-muted); margin-top:3px; }
 
-.gla-breakdown-card{ background:var(--gld-card-bg); border:1.5px solid var(--gld-border); border-radius:24px; padding:28px 32px; box-shadow:var(--gld-shadow-soft); margin-bottom:26px; }
+.gla-breakdown-card{ background:var(--gld-card-bg); border:1.5px solid var(--gld-border); border-radius:var(--gld-radius-lg); padding:28px 32px; box-shadow:var(--gld-shadow-soft); margin-bottom:26px; }
 .gla-test-picker{ max-width:340px; margin-bottom:20px; }
 .gla-test-picker label{ display:block; font-size:11.5px; font-weight:800; color:var(--gld-text-muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:.5px; }
 .gla-select{ width:100%; height:44px; padding:0 16px; border-radius:12px; border:1.5px solid var(--gld-border); background:#fff; font-size:14px; font-weight:700; color:var(--gld-text); outline:none; cursor:pointer; transition:all .2s; }
@@ -1371,7 +1418,7 @@ html[data-theme="dark"] .glr-medmind-card{ background:linear-gradient(180deg, rg
 .gla-legend-name{ display:flex; align-items:center; gap:10px; font-size:13.5px; font-weight:700; }
 .gla-dot-chip{ width:10px; height:10px; border-radius:3px; flex-shrink:0; }
 
-.gla-subject-section{ background:var(--gld-card-bg); border:1.5px solid var(--gld-border); border-radius:24px; padding:26px 28px; box-shadow:var(--gld-shadow-soft); margin-bottom:26px; }
+.gla-subject-section{ background:var(--gld-card-bg); border:1.5px solid var(--gld-border); border-radius:var(--gld-radius-lg); padding:26px 28px; box-shadow:var(--gld-shadow-soft); margin-bottom:26px; }
 .gla-toolbar-row{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px; margin-bottom:16px; }
 .gla-filter-pills{ display:flex; gap:6px; background:rgba(241,245,249,.85); padding:5px; border-radius:12px; border:1px solid var(--gld-border); }
 .gla-pill-btn{ border:none; background:none; padding:8px 18px; border-radius:9px; font-size:12.5px; font-weight:700; color:var(--gld-text-sub); cursor:pointer; transition:all .2s; }
@@ -1407,7 +1454,7 @@ html[data-theme="dark"] .glr-medmind-card{ background:linear-gradient(180deg, rg
 .gla-score-fill{ height:100%; border-radius:999px; background:var(--gla-ind); transition:width 1s var(--gld-transition); }
 
 .gla-insights-grid{ display:grid; grid-template-columns:1fr 1fr; gap:22px; margin-top:24px; }
-.gla-insight-card{ background:var(--gld-card-solid); border-radius:24px; padding:30px 28px; box-shadow:var(--gld-shadow-soft); position:relative; overflow:hidden; transition:all .32s var(--gld-transition); }
+.gla-insight-card{ background:var(--gld-card-solid); border-radius:var(--gld-radius-lg); padding:30px 28px; box-shadow:var(--gld-shadow-soft); position:relative; overflow:hidden; transition:all .32s var(--gld-transition); }
 .gla-insight-card:hover{ transform:translateY(-5px); }
 .gla-card-focus{ border:1.5px solid rgba(239,68,68,.45); box-shadow:0 16px 36px -8px rgba(239,68,68,.15), 0 0 0 1px rgba(239,68,68,.1); }
 .gla-card-focus::after{ content:''; position:absolute; top:-30px; right:-30px; width:160px; height:160px; background:radial-gradient(circle, rgba(239,68,68,.18) 0%, transparent 70%); pointer-events:none; }
@@ -1425,7 +1472,7 @@ html[data-theme="dark"] .glr-medmind-card{ background:linear-gradient(180deg, rg
 .gla-insight-item:hover{ background:#fff; transform:translateX(4px); box-shadow:0 6px 18px rgba(15,23,42,.05); border-color:var(--gld-primary); }
 .gla-item-top-row{ display:flex; justify-content:space-between; align-items:center; }
 .gla-item-name{ display:flex; align-items:center; gap:10px; font-size:14.5px; font-weight:800; color:var(--gld-text); }
-.gla-item-icon{ width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,.04); border:1px solid var(--gld-border); flex-shrink:0; }
+.gla-item-icon{ width:32px; height:32px; border-radius:var(--gld-radius-sm); display:flex; align-items:center; justify-content:center; font-size:16px; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,.04); border:1px solid var(--gld-border); flex-shrink:0; }
 .gla-item-pct{ font-family:'Outfit', sans-serif; font-size:17px; font-weight:800; }
 .gla-pct-danger{ color:#dc2626; }
 .gla-pct-success{ color:#059669; }
@@ -1508,7 +1555,7 @@ html[data-theme="dark"] .glr-medmind-card{ background:linear-gradient(180deg, rg
 .glr-part-head b{ font-size:15px; font-weight:800; }
 .glr-part-badge{ font-size:11px; font-weight:800; padding:3px 10px; border-radius:999px; background:var(--gld-primary-light); color:var(--gld-primary); border:1px solid rgba(21,94,239,.15); }
 .glr-sec-list{ display:flex; flex-direction:column; gap:8px; }
-.glr-sec-tile{ background:#f8fafc; border:1px solid var(--gld-border); border-radius:10px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; transition:all .2s; }
+.glr-sec-tile{ background:#f8fafc; border:1px solid var(--gld-border); border-radius:var(--gld-radius-sm); padding:10px 14px; display:flex; justify-content:space-between; align-items:center; transition:all .2s; }
 .glr-sec-tile:hover{ background:#ffffff; border-color:var(--gld-primary); }
 .glr-sec-tile-title b{ font-size:13px; display:block; }
 .glr-sec-tile-title span{ font-size:10.5px; color:var(--gld-text-muted); }
@@ -1529,7 +1576,7 @@ html[data-theme="dark"] .glr-medmind-card{ background:linear-gradient(180deg, rg
 .glr-btn-purple{ background:linear-gradient(135deg,#a855f7,#7c3aed); color:#fff; border:none; padding:9px 20px; border-radius:9px; font-weight:700; font-size:12.5px; cursor:pointer; box-shadow:0 4px 14px rgba(168,85,247,.3); transition:transform .2s; }
 .glr-btn-purple:hover{ transform:translateY(-2px); }
 .glr-ask-row{ display:flex; gap:8px; margin-top:12px; }
-.glr-ask-input{ flex:1; height:40px; padding:0 14px; border-radius:10px; border:1.5px solid #e9d5ff; font-size:13px; outline:none; }
+.glr-ask-input{ flex:1; height:40px; padding:0 14px; border-radius:var(--gld-radius-sm); border:1.5px solid #e9d5ff; font-size:13px; outline:none; }
 .glr-ask-input:focus{ border-color:#a855f7; }
 .glr-chat-log{ margin-bottom:10px; max-height:340px; overflow-y:auto; }
 
@@ -1595,6 +1642,15 @@ const $$ = (sel,root=document)=>[...root.querySelectorAll(sel)];
 function uid(prefix='id'){return prefix+'_'+Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);}
 function esc(s){return (s??'').toString().replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function truthy(v){ return ['true','1','yes','y','unlocked','active','enabled'].includes((v||'').toString().trim().toLowerCase()); }
+// Delays calling fn until the caller stops invoking it for `wait` ms — used
+// on search inputs that trigger a fresh server fetch (admin_list_students,
+// admin_list_questions, etc.) so typing a whole word sends ONE request
+// instead of one network round-trip per keystroke, which is what was making
+// those screens feel frozen while typing.
+function debounce(fn, wait=280){
+  let t=null;
+  return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), wait); };
+}
 function fmtClock(sec){
   sec=Math.max(0,Math.round(sec));
   const h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60;
@@ -2059,6 +2115,7 @@ async function doLogin(role, username, password){
     if(error || !row){ toast('Invalid Student ID or password','err'); return false; }
     S.role = 'student';
     S.studentToken = row.token;
+    S.sessionKickHandled = false; // fresh session — allow a future kick-out to fire again if this one is later replaced
     S.currentUser = { id: row.id, studentId: row.student_id, name: row.name, status:'Active', examTarget: row.exam_target||'FMGE' };
     localStorage.setItem('fmge_student_session', JSON.stringify({ token: row.token, id: row.id, studentId: row.student_id, name: row.name, examTarget: row.exam_target||'FMGE' }));
     S.view='student'; S.studentPage='dashboard';
@@ -2072,6 +2129,30 @@ async function doLogout(){
   localStorage.removeItem('fmge_student_session');
   S.role=null; S.currentUser=null; S.studentToken=null; S.view='login'; S.activeAttempt=null;
   render();
+}
+// ---------- ONE ACTIVE LOGIN PER STUDENT ----------
+// student_login hands back a fresh session token on every login, and the
+// same regex below (matched at boot() too) is how we recognize that the
+// server has rejected a p_token because it's no longer the current one —
+// almost always because this account logged in again elsewhere, which
+// server-side rotates the token and silently strands any other open tab
+// still using the old one. Without this check, that stranded session would
+// just see the SAME generic "Could not save"/"Could not submit" error
+// forever with no idea why, and could sit there retrying indefinitely.
+function isSessionInvalidError(error){
+  return !!(error && /session expired|invalid/i.test(error.message||''));
+}
+async function handleSessionKickedOut(){
+  if(S.sessionKickHandled) return; // avoid firing this more than once if several in-flight calls fail at the same moment
+  S.sessionKickHandled = true;
+  if(S.examTimerHandle) clearInterval(S.examTimerHandle);
+  stopHeartbeat();
+  if(S.pendingSaveTimer){ clearInterval(S.pendingSaveTimer); S.pendingSaveTimer=null; }
+  try{ detachExamSecurity(); }catch(e){}
+  localStorage.removeItem('fmge_student_session');
+  S.role=null; S.currentUser=null; S.studentToken=null; S.view='login'; S.activeAttempt=null; S.activeSection=null;
+  render();
+  toast('You were signed out here because this account logged in on another device.','err');
 }
 
 // =========================================================================
@@ -2473,6 +2554,21 @@ function renderLogin(app){
     if(!matches.length){ closeCollegeDropdown(); return; }
     collegeDropdown.innerHTML = matches.map(c=>`<div class="gl-autocomplete-item" data-val="${esc(c)}">${esc(c)}</div>`).join('');
     collegeDropdown.style.display='block';
+    // Flip the list above the field instead of below when there isn't enough
+    // room underneath inside the form's own scroll container (a fixed
+    // max-height:210px list would otherwise get visually cut off by that
+    // ancestor's own overflow:auto near the bottom of a long signup form) —
+    // an absolutely-positioned child is always clipped by a scrolling
+    // ancestor regardless of z-index, so this has to be decided in JS.
+    const scrollAncestor = collegeInput.closest('.gl-signup-scroll');
+    if(scrollAncestor){
+      const inputRect = collegeInput.getBoundingClientRect();
+      const ancestorRect = scrollAncestor.getBoundingClientRect();
+      const spaceBelow = ancestorRect.bottom - inputRect.bottom;
+      const flip = spaceBelow < 220; // roughly the list's own max-height + gap
+      collegeDropdown.style.top = flip? 'auto' : 'calc(100% + 4px)';
+      collegeDropdown.style.bottom = flip? 'calc(100% + 4px)' : 'auto';
+    }
     $$('.gl-autocomplete-item', collegeDropdown).forEach(el=>{
       el.onmousedown = (ev)=>{ ev.preventDefault(); collegeInput.value = el.dataset.val; closeCollegeDropdown(); };
     });
@@ -3223,7 +3319,13 @@ async function adminStudents(root){
   root.innerHTML = `<div class="empty-state">Loading students…</div>`;
   if(!S.stuSelected) S.stuSelected = new Set();
   try{
-    const { data: allStudents, error } = await sb.rpc('admin_list_students');
+    // Both calls are independent (neither's result feeds the other's
+    // arguments), so fetch them in parallel instead of one-after-another —
+    // saves one full network round-trip on every load of this page.
+    const [{ data: allStudents, error }, { data: batches }] = await Promise.all([
+      sb.rpc('admin_list_students'),
+      sb.rpc('admin_list_batches'),
+    ]);
     if(error){ root.innerHTML = `<div class="empty-state">Could not load students: ${esc(error.message)}</div>`; return; }
 
     const q = (S.stuFilters.q||'').toLowerCase();
@@ -3231,7 +3333,6 @@ async function adminStudents(root){
     if(q) students = students.filter(s=>[s.name,s.student_id,s.email,s.mobile].some(v=>(v||'').toLowerCase().includes(q)));
     if(S.stuFilters.batchId) students = students.filter(s=>s.batch_id===S.stuFilters.batchId);
 
-    const { data: batches } = await sb.rpc('admin_list_batches');
     S.batchesCache = batches||[];
     const selCount = S.stuSelected.size;
 
@@ -3275,7 +3376,7 @@ async function adminStudents(root){
         </tbody>
       </table></div>
     `;
-    $('#stuSearch').oninput=(e)=>{S.stuFilters.q=e.target.value; renderAdminSection($('#adminMain'));};
+    $('#stuSearch').oninput=debounce((e)=>{S.stuFilters.q=e.target.value; renderAdminSection($('#adminMain'));});
     $('#stuBatchFilter').onchange=(e)=>{S.stuFilters.batchId=e.target.value||null; renderAdminSection($('#adminMain'));};
     $('#addStuBtn').onclick=()=>openStudentModal();
     $('#bulkUploadBtn').onclick=()=>openBulkStudentModal();
@@ -3581,7 +3682,7 @@ async function adminQuestionBank(root){
       </tbody>
     </table></div>
   `;
-  $('#qbSearch').oninput=(e)=>{f.q=e.target.value; renderAdminSection($('#adminMain'));};
+  $('#qbSearch').oninput=debounce((e)=>{f.q=e.target.value; renderAdminSection($('#adminMain'));});
   $('#fExam').onchange=(e)=>{f.examCode=e.target.value; renderAdminSection($('#adminMain'));};
   $('#fSubject').onchange=(e)=>{f.subject=e.target.value; renderAdminSection($('#adminMain'));};
   $('#fDiff').onchange=(e)=>{f.difficulty=e.target.value; renderAdminSection($('#adminMain'));};
@@ -3686,6 +3787,8 @@ function openQuestionModal(){
   `);
   $('#qf_imgfile').onchange=async(e)=>{
     const file = e.target.files[0]; if(!file) return;
+    if(!/^image\/(png|jpe?g|webp|gif)$/i.test(file.type)){ toast('Please choose an image file (PNG/JPG/WEBP/GIF)','err'); e.target.value=''; return; }
+    if(file.size > 5*1024*1024){ toast('Image is too large (max 5MB) — please compress it first','err'); e.target.value=''; return; }
     $('#qf_imgpreview').innerHTML = 'Uploading…';
     const path = `q_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g,'_')}`;
     const { error } = await sb.storage.from('question-images').upload(path, file);
@@ -3697,6 +3800,8 @@ function openQuestionModal(){
   $('#saveQBtn').onclick=async()=>{
     const val = sel=>$(sel).value.trim();
     if(!val('#qf_text')||!val('#qf_a')||!val('#qf_b')){ toast('Question text and at least options A/B are required','err'); return; }
+    const correctOptVal = {A:val('#qf_a'),B:val('#qf_b'),C:val('#qf_c'),D:val('#qf_d')}[val('#qf_correct')];
+    if(!correctOptVal){ toast(`Correct Answer is set to ${val('#qf_correct')}, but option ${val('#qf_correct')} is empty — fill it in or pick a different correct answer`,'err'); return; }
     const btn = $('#saveQBtn'); btn.disabled=true; btn.textContent='Saving…';
     const { data, error } = await sb.rpc('admin_add_question', {
       p_exam_code: val('#qf_exam'), p_part_number: parseInt($('#qf_part').value)||1,
@@ -3710,7 +3815,10 @@ function openQuestionModal(){
     });
     if(error){
       btn.disabled=false; btn.textContent='SAVE QUESTION';
-      if(error.message.includes('DUPLICATE_QUESTION')) toast('This exact question already exists in the bank','err');
+      // Matches both the named error code and Postgres's own unique-violation
+      // code (23505) as a fallback, so this keeps working even if the RPC's
+      // error wording ever changes — not solely dependent on exact text.
+      if(error.message.includes('DUPLICATE_QUESTION') || error.code==='23505' || /duplicate/i.test(error.message||'')) toast('This exact question already exists in the bank','err');
       else toast('Could not save: '+error.message,'err');
       return;
     }
@@ -3779,13 +3887,18 @@ function openBulkQuestionModal(){
     for(let i=0;i<rows.length;i++){
       const r = rows[i];
       if(!r.question || !r.option_a || !r.option_b || !r.correct_answer){ fail++; errors.push(`Row ${i+2}: missing required field`); continue; }
+      const correctLetter = (r.correct_answer||'').trim().toUpperCase();
+      const correctOptionVal = {A:r.option_a, B:r.option_b, C:r.option_c, D:r.option_d}[correctLetter];
+      if(!['A','B','C','D'].includes(correctLetter) || !correctOptionVal){
+        fail++; errors.push(`Row ${i+2}: correct_answer "${r.correct_answer}" does not match a filled-in option`); continue;
+      }
       try{
         const { error } = await sb.rpc('admin_add_question', {
           p_exam_code: examCode, p_part_number: partNumber,
           p_subject: r.subject||'General', p_topic: r.topic||null,
           p_text: r.question, p_option_a: r.option_a, p_option_b: r.option_b,
           p_option_c: r.option_c||null, p_option_d: r.option_d||null,
-          p_correct: (r.correct_answer||'A').toUpperCase(), p_explanation: r.explanation||null,
+          p_correct: correctLetter, p_explanation: r.explanation||null,
           p_difficulty: ['Easy','Medium','Hard'].includes(r.difficulty)? r.difficulty:'Medium',
           p_is_pyq: truthy(r.pyq_tag), p_pyq_year: r.pyq_year? parseInt(r.pyq_year):null,
           p_marks: r.marks? parseFloat(r.marks):1, p_negative_marks: r.negative_marks? parseFloat(r.negative_marks):0.25,
@@ -3795,7 +3908,7 @@ function openBulkQuestionModal(){
           p_question_set: setName, p_set_order: setName? (i+1) : null,
         });
         if(error){
-          if(error.message.includes('DUPLICATE_QUESTION')) dup++;
+          if(error.message.includes('DUPLICATE_QUESTION') || error.code==='23505' || /duplicate/i.test(error.message||'')) dup++;
           else { fail++; errors.push(`Row ${i+2}: ${error.message}`); }
         } else ok++;
       }catch(rowErr){
@@ -4104,6 +4217,20 @@ window.setPartStatusInline = async(partId, status, testId)=>{
 window.continueTestWizard = async(testId)=>{
   const { data, error } = await sb.rpc('admin_get_test', {p_test_id:testId});
   if(error){ toast('Could not load test: '+error.message,'err'); return; }
+  // Hard guard, not just a hidden button: the wizard is only for setting up a
+  // Draft test. Once a test is scheduled/live/closed, students may already
+  // have attempts against its current parts/sections/questions/timing/marking
+  // — reopening the setup wizard on it (even via a direct call, e.g. from a
+  // console, bypassing the UI's "Continue Setup" button which is already
+  // draft-only) could resave those structures out from under an in-progress
+  // exam and corrupt attempt data. Refuse here regardless of how this was
+  // invoked. (True enforcement must also exist server-side in the RPCs this
+  // wizard calls — this client-side check is defense-in-depth, not a
+  // substitute for that.)
+  if(data.status && data.status!=='draft'){
+    toast(`"${data.name}" is ${data.status} — its structure/timing can no longer be edited to protect any in-progress or completed attempts.`,'err');
+    return;
+  }
   const { data: settings } = await sb.rpc('admin_get_test_settings', {p_test_id:testId});
   const sAt = settings?.start_at? new Date(settings.start_at) : null;
   const eAt = settings?.end_at? new Date(settings.end_at) : null;
@@ -4274,6 +4401,7 @@ function renderWizardStep(){
         </div>
       </div>
       <h4 style="font-size:14px;margin:18px 0 8px;">Anti-Cheating</h4>
+      <p style="font-size:12px;color:var(--text2);margin:-2px 0 10px;line-height:1.5;">These are browser-based deterrents — they log and can auto-submit on violation, but a technically determined student (devtools, a second device, disabling JS) can bypass them, same as any web-based exam without a dedicated lockdown app. Treat logged violations as evidence for manual review, not a guaranteed technical block.</p>
       <div class="row">
         <div class="field"><label>Tab-switch warnings before auto-submit</label><input type="number" min="1" max="20" id="w_tabswitch" value="${w.tabSwitchLimit}"></div>
       </div>
@@ -4590,8 +4718,8 @@ async function bindQuestionListEvents(target, onChange, examCode){
     </div>
     <p style="font-size:11.5px;color:var(--text2);margin-top:6px;">Showing up to 100 matches for this exam — narrow filters if you have more.</p>
   `;
-  $('#aq_search').oninput=(e)=>{f.q=e.target.value; onChange();};
-  $('#aq_subject').oninput=(e)=>{f.subject=e.target.value; onChange();};
+  $('#aq_search').oninput=debounce((e)=>{f.q=e.target.value; onChange();});
+  $('#aq_subject').oninput=debounce((e)=>{f.subject=e.target.value; onChange();});
   $('#aq_diff').onchange=(e)=>{f.difficulty=e.target.value; onChange();};
   $('#aq_selectAll').onclick=()=>{
     let added=0, skippedDup=0;
@@ -4716,7 +4844,7 @@ async function adminResults(root){
     </table></div>
   `;
   $('#resTestSel').onchange=(e)=>{S.resultsTestFilter=e.target.value; S.resultsSearchQ=''; renderAdminSection($('#adminMain'));};
-  $('#resSearch').oninput=(e)=>{S.resultsSearchQ=e.target.value; renderAdminSection($('#adminMain'));};
+  $('#resSearch').oninput=debounce((e)=>{S.resultsSearchQ=e.target.value; renderAdminSection($('#adminMain'));});
   $('#exportResultsBtn').onclick=async()=>{
     if(!results.length){ toast('No results to export','err'); return; }
     const btn = $('#exportResultsBtn');
@@ -5275,6 +5403,8 @@ async function adminSettings(root){
         if(clearBtn) clearBtn.onclick=async()=>{
           const { error } = await sb.rpc('admin_deactivate_announcement', {p_id: ann.id});
           if(error){ toast('Could not clear: '+error.message,'err'); return; }
+          _announcementCache = null;
+          await logAudit('Deactivate Announcement', ann.message);
           toast('Announcement cleared','ok');
           adminSettings(root);
         };
@@ -5294,6 +5424,7 @@ async function adminSettings(root){
       if(outMsg) outMsg.innerHTML = `<span style="color:var(--error)">Could not post: ${esc(error.message)} — make sure the announcement SQL migration has been run.</span>`;
       toast('Could not post: '+error.message,'err'); return;
     }
+    _announcementCache = null;
     await logAudit('Post Announcement', msg);
     toast('Announcement posted — visible to everyone now','ok');
     adminSettings(root);
@@ -5349,11 +5480,19 @@ async function adminSettings(root){
 
 // ---------- ADMIN: Sign-Up Students (self-registered) ----------
 async function adminSignupStudents(root){
+  if(!S.signupSelected) S.signupSelected = new Set();
   root.innerHTML = `<div class="empty-state">Loading…</div>`;
   const { data: rows, error } = await sb.rpc('admin_list_signup_students');
   if(error){ root.innerHTML = `<div class="empty-state">Could not load: ${esc(error.message)} — make sure the Student Sign-Up SQL has been run in Supabase.</div>`; return; }
   const q = (S.signupSearchQ||'').toLowerCase().trim();
   const list = q? (rows||[]).filter(r=>[r.name,r.student_id,r.email,r.mobile,r.college_name].some(v=>(v||'').toLowerCase().includes(q))) : (rows||[]);
+  // Row identity for delete calls: prefer a real uuid (id) if the RPC returns one
+  // (same shape as admin_list_students), fall back to the human-readable student_id.
+  const rowKey = (r)=> r.id || r.student_uuid || r.student_id;
+  // Keep selection limited to rows still on screen (e.g. after a search/filter change)
+  const visibleKeys = new Set(list.map(rowKey));
+  Array.from(S.signupSelected).forEach(k=>{ if(!visibleKeys.has(k)) S.signupSelected.delete(k); });
+  const selCount = S.signupSelected.size;
 
   root.innerHTML = `
     <div class="table-toolbar">
@@ -5361,22 +5500,98 @@ async function adminSignupStudents(root){
       <span class="badge badge-blue">${(rows||[]).length} self sign-up${(rows||[]).length===1?'':'s'}</span>
       <button class="btn btn-outline btn-sm" id="exportSignupsBtn">⬇ Export CSV</button>
     </div>
+    ${selCount? `<div class="lock-banner" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+      <span>${selCount} student(s) selected</span>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-danger btn-sm" id="bulkDeleteSignupBtn">🗑 Delete Selected</button>
+        <button class="btn btn-ghost btn-sm" id="clearSignupSelBtn">Clear selection</button>
+      </div>
+    </div>` : ''}
     <div class="table-wrap"><table>
-      <thead><tr><th>Student ID</th><th>Name</th><th>Mobile</th><th>Email</th><th>College</th><th>Country</th><th>Adm. Year</th><th>Target Exam</th><th>Status</th><th>Signed Up</th></tr></thead>
+      <thead><tr><th style="width:36px;"><input type="checkbox" id="selAllSignup" ${list.length && list.every(r=>S.signupSelected.has(rowKey(r)))?'checked':''}></th><th>Student ID</th><th>Name</th><th>Mobile</th><th>Email</th><th>College</th><th>Country</th><th>Adm. Year</th><th>Target Exam</th><th>Status</th><th>Signed Up</th><th></th></tr></thead>
       <tbody>${list.length? list.map(r=>`<tr>
+        <td><input type="checkbox" class="signupRowChk" data-key="${esc(String(rowKey(r)))}" ${S.signupSelected.has(rowKey(r))?'checked':''}></td>
         <td><b>${esc(r.student_id)}</b></td><td>${esc(r.name)}</td><td>${esc(r.mobile||'—')}</td><td>${esc(r.email||'—')}</td>
         <td>${esc(r.college_name||'—')}</td><td>${esc(r.country||'—')}</td><td>${esc(r.admission_year||'—')}</td><td>${esc(r.exam_target||'—')}</td>
         <td><span class="badge ${r.status==='Active'?'badge-success':'badge-grey'}">${esc(r.status)}</span></td>
         <td>${r.signup_at? new Date(r.signup_at).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) : '—'}</td>
-      </tr>`).join('') : `<tr><td colspan="10"><div class="empty-state">${q? 'No matching students found.' : 'No students have signed up yet.'}</div></td></tr>`}</tbody>
+        <td><div style="display:flex;gap:6px;flex-wrap:wrap;">
+          ${r.status==='Active'
+            ? `<button class="btn btn-sm btn-outline" onclick="rejectSignupStudent('${esc(String(rowKey(r)))}','${esc(r.name)}')">⛔ Reject</button>`
+            : `<button class="btn btn-sm btn-primary" onclick="approveSignupStudent('${esc(String(rowKey(r)))}','${esc(r.name)}')">✓ Approve</button>`}
+          <button class="btn btn-sm btn-danger" onclick="deleteSignupStudent('${esc(String(rowKey(r)))}','${esc(r.name)}')">🗑 Delete</button>
+        </div></td>
+      </tr>`).join('') : `<tr><td colspan="12"><div class="empty-state">${q? 'No matching students found.' : 'No students have signed up yet.'}</div></td></tr>`}</tbody>
     </table></div>
   `;
-  $('#signupSearch').oninput=(e)=>{ S.signupSearchQ=e.target.value; renderAdminSection($('#adminMain')); };
+  $('#signupSearch').oninput=debounce((e)=>{ S.signupSearchQ=e.target.value; renderAdminSection($('#adminMain')); });
   $('#exportSignupsBtn').onclick=()=>{
     downloadCSV('signup_students.csv',[['StudentID','Name','Mobile','Email','College','Country','AdmissionYear','TargetExam','Status','SignupDate'],
       ...list.map(r=>[r.student_id,r.name,r.mobile,r.email,r.college_name,r.country,r.admission_year,r.exam_target,r.status,r.signup_at])]);
     logAudit('Export Sign-Up Students','CSV');
   };
+  $('#selAllSignup').onchange=(e)=>{
+    list.forEach(r=> e.target.checked? S.signupSelected.add(rowKey(r)) : S.signupSelected.delete(rowKey(r)));
+    renderAdminSection($('#adminMain'));
+  };
+  $$('.signupRowChk').forEach(chk=>{
+    chk.onchange=()=>{ chk.checked? S.signupSelected.add(chk.dataset.key) : S.signupSelected.delete(chk.dataset.key); renderAdminSection($('#adminMain')); };
+  });
+  const clearBtn = $('#clearSignupSelBtn'); if(clearBtn) clearBtn.onclick=()=>{ S.signupSelected.clear(); renderAdminSection($('#adminMain')); };
+  const bulkDelBtn = $('#bulkDeleteSignupBtn'); if(bulkDelBtn) bulkDelBtn.onclick=()=>bulkDeleteSignupStudents();
+}
+// Single delete for a self-registered student — reuses the same admin_delete_student
+// RPC as the main Students module, so the same safety rule applies: if the student
+// has already attempted an exam, the server refuses the delete (use Disable instead),
+// keeping exam/result data intact.
+window.deleteSignupStudent = async(key, name)=>{
+  confirmModal(`Permanently delete "${name}"? This removes the student account entirely — this cannot be undone. If they've already attempted an exam, deletion will be blocked automatically.`, async()=>{
+    const { error } = await sb.rpc('admin_delete_student', {p_student_uuid: key});
+    if(error){ toast('Could not delete: '+error.message,'err'); return; }
+    await logAudit('Delete Sign-Up Student', `${name} (${key})`);
+    if(S.signupSelected) S.signupSelected.delete(key);
+    toast('Student deleted','ok');
+    renderAdminSection($('#adminMain'));
+  }, {okLabel:'Delete permanently'});
+};
+// Approve/Reject for self-registered students — a lighter-weight lever than
+// permanent delete. New sign-ups land as Active immediately (there's no
+// pending-approval status in the database), so "Reject" here reuses the
+// same Active/Inactive status toggle as the main Students module's
+// Enable/Disable: an Inactive student cannot log in, but their account and
+// any history stays intact — reversible via "Approve" any time, unlike
+// Delete. This gives admins a real vet-before-use lever without needing a
+// new database status or touching the signup RPC itself.
+window.rejectSignupStudent = async(key, name)=>{
+  confirmModal(`Reject "${name}"? Their account is disabled and they will not be able to log in, but nothing is deleted — you can Approve them again any time.`, async()=>{
+    const { error } = await sb.rpc('admin_update_student', {p_student_uuid: key, p_status:'Inactive'});
+    if(error){ toast('Could not reject: '+error.message,'err'); return; }
+    await logAudit('Reject Sign-Up Student', `${name} (${key})`);
+    toast('Student rejected — account disabled','ok');
+    renderAdminSection($('#adminMain'));
+  }, {title:'Reject sign-up', okLabel:'Reject'});
+};
+window.approveSignupStudent = async(key, name)=>{
+  const { error } = await sb.rpc('admin_update_student', {p_student_uuid: key, p_status:'Active'});
+  if(error){ toast('Could not approve: '+error.message,'err'); return; }
+  await logAudit('Approve Sign-Up Student', `${name} (${key})`);
+  toast('Student approved — can log in now','ok');
+  renderAdminSection($('#adminMain'));
+};
+async function bulkDeleteSignupStudents(){
+  const keys = Array.from(S.signupSelected||[]);
+  if(!keys.length) return;
+  confirmModal(`Permanently delete ${keys.length} selected student(s)? This cannot be undone. Any student who has already attempted an exam will be skipped automatically.`, async()=>{
+    let ok=0, fail=0;
+    for(let i=0;i<keys.length;i++){
+      const { error } = await sb.rpc('admin_delete_student', {p_student_uuid: keys[i]});
+      if(error) fail++; else ok++;
+    }
+    await logAudit('Bulk Delete Sign-Up Students', `${ok} deleted, ${fail} skipped (had exam attempts or other error)`);
+    toast(`${ok} student(s) deleted${fail?`, ${fail} skipped (already have exam attempts)`:''}`, fail? 'err':'ok');
+    S.signupSelected.clear();
+    renderAdminSection($('#adminMain'));
+  }, {okLabel:'Delete permanently'});
 }
 
 // ---------- ADMIN: Audit Logs (real Supabase-backed) ----------
@@ -5417,7 +5632,17 @@ window.confirmModal = (message, onConfirm, opts={})=>{
     </div>
   `, opts.width||460);
   $('#confirmModalCancel').onclick=()=>closeModal();
-  $('#confirmModalOk').onclick=()=>{ closeModal(); onConfirm(); };
+  $('#confirmModalOk').onclick=async()=>{
+    const okBtn = $('#confirmModalOk'), cancelBtn = $('#confirmModalCancel');
+    if(okBtn && okBtn.disabled) return; // guard: prevents a second tap firing the action again while it's in flight
+    if(okBtn){ okBtn.disabled=true; okBtn.style.opacity='0.6'; okBtn.textContent='Please wait…'; }
+    if(cancelBtn) cancelBtn.disabled=true;
+    try{
+      await onConfirm();
+    } finally {
+      closeModal();
+    }
+  };
 };
 window.S = S; // expose for inline handlers
 
@@ -5634,9 +5859,13 @@ function openRpImportModal(refreshRoot){
       source_name, source_url, normalization_method, normalization_notes, confidence, verification_status.
       Imported rows always land as <b>unverified + inactive</b> — verify and activate them from the table after import.
     </p>
+    <button class="btn btn-outline btn-sm" id="dlTemplateRp" style="margin-bottom:14px;">Download CSV Template</button>
     <input type="file" id="rpCsvFile" accept=".csv">
     <div id="rpCsvPreview" style="margin-top:14px;"></div>
   `, 640);
+  $('#dlTemplateRp').onclick=()=>downloadCSV('rank_predictor_dataset_template.csv',[
+    ['year','original_score_min','original_score_max','original_max_score','normalized_score_min','normalized_score_max','rank_min','rank_max','candidate_count','source_name','source_url','normalization_method','normalization_notes','confidence','verification_status'],
+    ['2024','450','720','720','450','720','1','50000','180000','NBEMS Official','https://natboard.edu.in','none','','high','unverified']]);
   $('#rpCsvFile').onchange=async(e)=>{
     const file = e.target.files[0]; if(!file) return;
     const text = await file.text();
@@ -5688,6 +5917,7 @@ async function rpAdminSpecialtyTab(root){
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn btn-primary btn-sm" id="rpSpecBulkVerifyBtn">✓ Verify selected</button>
         <button class="btn btn-primary btn-sm" id="rpSpecBulkActivateBtn">▶ Verify + Activate selected</button>
+        <button class="btn btn-danger btn-sm" id="rpSpecBulkDeleteBtn">🗑 Delete Selected</button>
         <button class="btn btn-ghost btn-sm" id="rpSpecClearSelBtn">Clear selection</button>
       </div>
     </div>` : ''}
@@ -5756,6 +5986,22 @@ async function rpAdminSpecialtyTab(root){
       bulkSpecAction(S.rpSpecSelected, {verify:true, activate:true}, 'Activating');
     }, {title:'Bulk verify + activate', okLabel:'Verify + Activate', danger:false});
   };
+  const specBulkDeleteBtn = $('#rpSpecBulkDeleteBtn');
+  if(specBulkDeleteBtn) specBulkDeleteBtn.onclick=()=>{
+    confirmModal(`Permanently delete ${S.rpSpecSelected.size} selected row(s)? This cannot be undone.`, async()=>{
+      const ids2 = Array.from(S.rpSpecSelected);
+      toast(`Deleting ${ids2.length} row(s)…`,'');
+      let done=0, failed=0;
+      for(const id of ids2){
+        const { error } = await sb.rpc('admin_neetpg_delete_specialty_row', {p_id:id, p_confirm:true});
+        if(error){ failed++; continue; }
+        done++;
+      }
+      S.rpSpecSelected.clear();
+      toast(`${done} row(s) deleted${failed?`, ${failed} failed`:''}`, failed? 'err':'ok');
+      rpAdminSpecialtyTab(root);
+    }, {title:'Delete selected rows', okLabel:'Delete', danger:true});
+  };
   $$('[data-vspec]').forEach(b=>b.onclick=async()=>{
     const { error } = await sb.rpc('admin_neetpg_verify_specialty_row', {p_id:b.dataset.vspec, p_approved:true});
     if(error){ toast('Could not verify: '+error.message,'err'); return; }
@@ -5782,9 +6028,13 @@ function openRpSpecialtyImportModal(refreshRoot){
       Columns expected: specialty, year, round, quota, category, closing_rank, source_name, source_url, confidence, verification_status.
       Imported rows always land as <b>unverified + inactive</b>.
     </p>
+    <button class="btn btn-outline btn-sm" id="dlTemplateRpSpec" style="margin-bottom:14px;">Download CSV Template</button>
     <input type="file" id="rpSpecCsvFile" accept=".csv">
     <div id="rpSpecCsvPreview" style="margin-top:14px;"></div>
   `, 640);
+  $('#dlTemplateRpSpec').onclick=()=>downloadCSV('specialty_cutoffs_template.csv',[
+    ['specialty','year','round','quota','category','closing_rank','source_name','source_url','confidence','verification_status'],
+    ['General Medicine','2024','Round 1','All India','General','1250','NBEMS Official','https://natboard.edu.in','high','unverified']]);
   $('#rpSpecCsvFile').onchange=async(e)=>{
     const file = e.target.files[0]; if(!file) return;
     const text = await file.text();
@@ -5984,11 +6234,23 @@ function renderStudentShell(app){
 // placeholder already present in that shell's markup. Fails silently if the
 // backing table/RPC isn't set up yet, so it's a no-op until that migration
 // is applied — never a broken page.
+// This runs on effectively every page navigation (both shells call it on
+// every render), so the actual RPC result is cached for a short window —
+// a student clicking through Dashboard → Analytics → Error Book a few
+// times in a row reuses one fetch instead of firing a new request each
+// time, while a genuinely new announcement still shows up within ~20s.
+let _announcementCache = null; // {ann, at}
 async function mountAnnouncementBanner(){
   const slot = $('#announcementSlot');
   if(!slot) return;
   let ann = null;
-  try{ const { data } = await sb.rpc('app_get_active_announcement'); ann = data||null; }catch(e){ /* not set up yet */ }
+  const fresh = _announcementCache && (Date.now()-_announcementCache.at < 20000);
+  if(fresh){
+    ann = _announcementCache.ann;
+  } else {
+    try{ const { data } = await sb.rpc('app_get_active_announcement'); ann = data||null; }catch(e){ /* not set up yet */ }
+    _announcementCache = { ann, at: Date.now() };
+  }
   if(!ann || !ann.message || S.announcementDismissedId===ann.id){ slot.innerHTML=''; return; }
   const level = ann.level || 'info';
   const icon = level==='critical'?'🚨':level==='warning'?'⚠️':'📢';
@@ -6374,6 +6636,7 @@ async function studentDashboard(root){
   ]);
   const bookmarkCount = (bookmarkIds||[]).length;
   if(error){
+    if(isSessionInvalidError(error)){ handleSessionKickedOut(); return; }
     root.innerHTML = `<div class="empty-state">Could not load dashboard: ${esc(error.message)}<br><button class="btn btn-outline btn-sm" style="margin-top:10px;" onclick="doLogout()">Log in again</button></div>`;
     return;
   }
@@ -6742,6 +7005,7 @@ window.startSection = async(sectionId, testId, partId)=>{
   const { data, error } = await sb.rpc('student_start_section', {p_token: S.studentToken, p_section_id: sectionId});
   S.startingSection = false;
   if(error){
+    if(isSessionInvalidError(error)){ handleSessionKickedOut(); return; }
     // A near-simultaneous double-click can occasionally lose a race to the
     // database's own duplicate-prevention constraint; treat that specific
     // case as harmless (the other click already got the student in).
@@ -6761,7 +7025,7 @@ window.startSection = async(sectionId, testId, partId)=>{
     attemptId: data.attempt_id, attemptSectionId: data.attempt_section_id,
     sectionName: data.section_name, serverEndAt: data.server_end_at,
     fullscreenRequired: !!data.fullscreen_required, disableCopyPaste: !!data.disable_copy_paste,
-    tabSwitchLimit: data.tab_switch_limit || 3, tabSwitchCount: 0,
+    tabSwitchLimit: data.tab_switch_limit || 3, tabSwitchCount: 0, fullscreenExitCount: 0,
     questions: data.questions, currentIndex: 0,
     responses: {}, questionShownAt: Date.now(),
   };
@@ -6949,6 +7213,7 @@ function setSaveStatus(mode, extra=''){
 async function attemptSaveOnce(payload){
   try{
     const { error } = await sb.rpc('student_save_response', payload);
+    if(error && isSessionInvalidError(error)){ handleSessionKickedOut(); return false; }
     return !error;
   }catch(e){
     return false;
@@ -7185,7 +7450,7 @@ function renderExamPaletteHTML(sec){
   return `
     ${markedIdx.length? `<div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:10px;margin-bottom:12px;">
       <div style="font-size:11.5px;font-weight:700;color:#9A3412;text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px;">📌 Marked for Review (${markedIdx.length})</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;">${markedIdx.map(i=>`<button type="button" class="marked-jump-chip" data-idx="${i}" style="width:28px;height:28px;border-radius:6px;border:1px solid var(--accent);background:#fff;color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;">${i+1}</button>`).join('')}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">${markedIdx.map(i=>`<button type="button" class="marked-jump-chip" data-idx="${i}" style="min-width:40px;min-height:40px;padding:4px;border-radius:8px;border:1px solid var(--accent);background:#fff;color:var(--accent);font-size:13px;font-weight:700;cursor:pointer;">${i+1}</button>`).join('')}</div>
     </div>`:''}
     <div class="palette-grid">${nodes}</div>
     <div class="legend-row"><div class="legend-dot" style="background:var(--success)"></div> Answered (${counts.answered})</div>
@@ -7253,9 +7518,21 @@ async function handleSectionSubmit(auto, reason='manual'){
     stopHeartbeat();
     if(S.pendingSaveTimer){ clearInterval(S.pendingSaveTimer); S.pendingSaveTimer=null; }
     detachExamSecurity();
-    const { data, error } = await sb.rpc('student_submit_section', {p_token:S.studentToken, p_attempt_section_id: sec.attemptSectionId, p_reason: reason});
+    const submitPayload = {p_token:S.studentToken, p_attempt_section_id: sec.attemptSectionId, p_reason: reason};
+    let { data, error } = await sb.rpc('student_submit_section', submitPayload);
+    // A network blip right at submission is the worst possible moment for a
+    // silent dead end — retry a couple of times (short backoff) before
+    // giving up and asking the student to retry manually, same spirit as
+    // the answer-save retry queue.
+    for(let attempt=0; error && !isSessionInvalidError(error) && attempt<2; attempt++){
+      await new Promise(r=>setTimeout(r, 1500));
+      ({ data, error } = await sb.rpc('student_submit_section', submitPayload));
+    }
     S.activeSection = null;
-    if(error){ toast('Could not submit: '+error.message,'err'); S.studentPage='dashboard'; render(); return; }
+    if(error){
+      if(isSessionInvalidError(error)){ handleSessionKickedOut(); return; }
+      toast('Could not submit after retrying: '+error.message+' — please use Continue Exam from your dashboard to try again.','err'); S.studentPage='dashboard'; render(); return;
+    }
     if(data.testFinished){
       toast('All sections complete — your exam has been submitted!','ok');
       S.viewingResultAttemptId = null; // dashboard will show "View Result" using student_get_dashboard's attempt_id
@@ -7366,6 +7643,18 @@ function updateNetStatus(){
   if(navigator.onLine){ el.style.background='#ECFDF5'; el.style.color='#047857'; el.textContent='🟢 Online'; }
   else { el.style.background='#FEF2F2'; el.style.color='#B91C1C'; el.textContent='🔴 Offline'; }
 }
+// One retry (after a short delay) before falling back to a local increment —
+// reduces how often a single network blip makes the on-screen violation
+// count briefly drift from the server's real count (it always self-corrects
+// on the next successful log call either way, this just shrinks that window).
+async function logActivityWithRetry(payload){
+  let res = await sb.rpc('student_log_activity', payload);
+  if(res.error && !isSessionInvalidError(res.error)){
+    await new Promise(r=>setTimeout(r, 800));
+    res = await sb.rpc('student_log_activity', payload);
+  }
+  return res;
+}
 function attachExamSecurity(){
   const sec = S.activeSection;
   if(!sec) return;
@@ -7380,7 +7669,8 @@ function attachExamSecurity(){
   };
   document.onvisibilitychange = async ()=>{
     if(document.hidden && S.studentPage==='exam' && S.activeSection){
-      const { data } = await sb.rpc('student_log_activity', {p_token:S.studentToken, p_attempt_id:S.activeSection.attemptId, p_event_type:'tab_switch'});
+      const { data, error } = await logActivityWithRetry({p_token:S.studentToken, p_attempt_id:S.activeSection.attemptId, p_event_type:'tab_switch'});
+      if(error && isSessionInvalidError(error)){ handleSessionKickedOut(); return; }
       const count = data ?? (++S.activeSection.tabSwitchCount);
       S.activeSection.tabSwitchCount = count;
       const limit = S.activeSection.tabSwitchLimit || 3;
@@ -7395,9 +7685,21 @@ function attachExamSecurity(){
   };
   document.onfullscreenchange = async ()=>{
     if(sec.fullscreenRequired && !document.fullscreenElement && S.studentPage==='exam' && S.activeSection){
-      await sb.rpc('student_log_activity', {p_token:S.studentToken, p_attempt_id:S.activeSection.attemptId, p_event_type:'fullscreen_exit'});
+      const { data, error } = await logActivityWithRetry({p_token:S.studentToken, p_attempt_id:S.activeSection.attemptId, p_event_type:'fullscreen_exit'});
+      if(error && isSessionInvalidError(error)){ handleSessionKickedOut(); return; }
+      // Enforced the same way as tab-switching: repeatedly leaving fullscreen
+      // is just as easy a way to consult outside material, so it now counts
+      // toward the same violation limit instead of only ever being logged.
+      const count = data ?? (++S.activeSection.fullscreenExitCount);
+      S.activeSection.fullscreenExitCount = count;
+      const limit = S.activeSection.tabSwitchLimit || 3;
       playAlertBeep();
-      toast('Please stay in full-screen mode during the exam','err');
+      if(count >= limit){
+        toast(`Too many fullscreen exits (${count}/${limit}) — this section is being auto-submitted`,'err');
+        handleSectionSubmit(true, 'auto_fullscreen_exit');
+      } else {
+        toast(`Warning ${count}/${limit}: leaving full-screen mode during the exam is recorded — please stay in full-screen`,'err');
+      }
     }
   };
   if(sec.disableCopyPaste){
