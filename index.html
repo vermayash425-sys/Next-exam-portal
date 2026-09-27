@@ -1704,7 +1704,14 @@ function downloadCSV(filename, rows){
 window._captchaReady = false;
 window.onRecaptchaApiLoad = function(){ window._captchaReady = true; };
 const captchaWidgets = {};
+// Admin-controlled on/off switch (Settings → CAPTCHA Verification). Defaults
+// to ON (matches the original always-on behavior) so nothing changes for
+// anyone until the admin explicitly turns it off from the panel.
+function captchaEnabled(){
+  return S.appSettings?.captcha_enabled !== false;
+}
 function mountCaptcha(containerId){
+  if(!captchaEnabled()) return; // admin has switched CAPTCHA off — never render the widget
   const el = document.getElementById(containerId);
   if(!el || !RECAPTCHA_SITE_KEY) return;
   // Capture the actual DOM node (not just its id string) so a slow-loading
@@ -1730,6 +1737,7 @@ function mountCaptcha(containerId){
   tryRender();
 }
 function captchaSolved(containerId){
+  if(!captchaEnabled()) return true; // admin has switched CAPTCHA off
   // Fails OPEN (does not block login) if the widget never managed to load
   // at all — an ad-blocker, a Google outage, or a slow connection — so
   // that can never lock every student/admin out of the portal. Once it HAS
@@ -1756,6 +1764,7 @@ function captchaReset(containerId){
 // the portal; it only ever fails CLOSED when Google itself says the token
 // is invalid/expired, which is the actual bot-blocking case.
 async function verifyCaptchaOnServer(containerId){
+  if(!captchaEnabled()) return true; // admin has switched CAPTCHA off
   if(!(window._captchaReady && window.grecaptcha)) return true; // widget never loaded — captchaSolved() already handled this
   const id = captchaWidgets[containerId];
   if(id===undefined) return true;
@@ -2040,19 +2049,28 @@ async function boot(){
         // (e.g. the student logged in on another device, which invalidates
         // this one) — safe and correct to clear it and show the login page.
         localStorage.removeItem('fmge_student_session');
+      } else if(error){
+        // Any OTHER error here (network hiccup, temporary Supabase outage,
+        // DNS blip on page load, etc.) is NOT treated as an invalid session —
+        // we deliberately do NOT clear localStorage in that case, so the very
+        // next page load/refresh (once connectivity returns) can still log
+        // the student back in automatically instead of forcing a manual
+        // re-login for what was only ever a temporary network issue.
+        // Only the login screen's messaging changes, so a student mid-exam
+        // who lost signal and got reloaded (common on mobile — screen lock,
+        // switching apps) understands why they're seeing a login screen at
+        // all: their exam attempt itself is untouched server-side, and
+        // logging back in drops them straight back into "Continue Exam"
+        // exactly where they left off, instead of looking like data loss.
+        S.sessionRestoreNetworkIssue = true;
       }
-      // Any OTHER error here (network hiccup, temporary Supabase outage,
-      // DNS blip on page load, etc.) is NOT treated as an invalid session —
-      // we deliberately do NOT clear localStorage in that case, so the very
-      // next page load/refresh (once connectivity returns) can still log
-      // the student back in automatically instead of forcing a manual
-      // re-login for what was only ever a temporary network issue.
     }
   }catch(e){
     // A thrown exception here almost always means the request never even
     // reached the server (offline, DNS failure, etc.) — a pure
     // connectivity problem, not an invalid session. Leave the saved
     // session alone so the next attempt can still succeed.
+    if(localStorage.getItem('fmge_student_session')) S.sessionRestoreNetworkIssue = true;
   }
 
   if(!S.role){
@@ -2070,7 +2088,7 @@ async function boot(){
   // from Settings. Falls back to the original hardcoded number if the
   // app_settings table/RPC doesn't exist yet (e.g. this SQL hasn't been
   // run yet), so nothing breaks on an older database.
-  S.appSettings = { support_phone: '+91 98182 79059', support_label: 'Need help? Contact support —', rank_predictor_live: true, signup_live: true };
+  S.appSettings = { support_phone: '+91 98182 79059', support_label: 'Need help? Contact support —', rank_predictor_live: true, signup_live: true, captcha_enabled: true };
   try{
     const { data: appCfg, error: appCfgErr } = await sb.rpc('app_get_settings');
     // app_get_settings() is declared "returns table(...)", which PostgREST
@@ -2084,6 +2102,7 @@ async function boot(){
       S.appSettings.support_label = row.support_label || S.appSettings.support_label;
       if(typeof row.rank_predictor_live === 'boolean') S.appSettings.rank_predictor_live = row.rank_predictor_live;
       if(typeof row.signup_live === 'boolean') S.appSettings.signup_live = row.signup_live;
+      if(typeof row.captcha_enabled === 'boolean') S.appSettings.captcha_enabled = row.captcha_enabled;
       S.appSettings.sheet_webhook_url = row.sheet_webhook_url || null;
     }
   }catch(e){ /* app_settings not set up yet — keep the fallback above */ }
@@ -2125,6 +2144,7 @@ async function doLogin(role, username, password){
     S.role = 'student';
     S.studentToken = row.token;
     S.sessionKickHandled = false; // fresh session — allow a future kick-out to fire again if this one is later replaced
+    S.sessionRestoreNetworkIssue = false; // logged in successfully — the earlier "connection issue" banner no longer applies
     S.currentUser = { id: row.id, studentId: row.student_id, name: row.name, status:'Active', examTarget: row.exam_target||'FMGE' };
     localStorage.setItem('fmge_student_session', JSON.stringify({ token: row.token, id: row.id, studentId: row.student_id, name: row.name, examTarget: row.exam_target||'FMGE' }));
     S.view='student'; S.studentPage='dashboard';
@@ -2301,6 +2321,7 @@ function renderLogin(app){
             <h2>Sign In</h2>
             <p>Access your national mocks, section tests &amp; rank analytics.</p>
           </div>
+          ${S.sessionRestoreNetworkIssue? `<div style="background:#FEF3C7;border:1px solid #FDE68A;color:#92400E;border-radius:8px;padding:10px 14px;font-size:12.5px;margin-bottom:14px;">📶 Connection issue while restoring your session — your exam attempt is safe on the server. Just log back in and use <b>Continue Exam</b> on your Dashboard to pick up exactly where you left off.</div>` : ''}
           <div class="gl-role-tabs">
             <div class="gl-role-slider" id="glRoleSlider" style="transform:translateX(${role==='admin'?'100%':'0%'});"></div>
             <button type="button" class="gl-role-tab-btn ${role==='student'?'active':''}" id="glTabStudent"><span>👨‍⚕️</span> Student</button>
@@ -2322,11 +2343,10 @@ function renderLogin(app){
                 <button type="button" class="gl-toggle-pass-btn" id="loginPwToggle" title="Show password">👁️</button>
               </div>
             </div>
-            <div class="gl-row-actions">
-              <label class="gl-remember-label"><input type="checkbox" id="glRememberMe"><span>Keep me logged in</span></label>
+            <div class="gl-row-actions" style="justify-content:flex-end;">
               <a href="#" class="gl-forgot-link" id="forgotPwLink" style="${role==='student'?'':'visibility:hidden;'}">Forgot password?</a>
             </div>
-            <div id="loginRecaptcha" style="margin:6px 0 4px;"></div>
+            <div id="loginRecaptcha" style="margin:6px 0 4px;${captchaEnabled()?'':'display:none;'}"></div>
             <button class="gl-btn-submit" type="submit" id="loginSubmitBtn">
               <span id="glSubmitLabel">${role==='admin'?'Login to Admin Panel':'Login & Start Test'}</span>
               <span style="font-size:17px;line-height:1;">›</span>
@@ -2393,7 +2413,7 @@ function renderLogin(app){
               </div>
             </div>
 
-            <div id="signupRecaptcha" style="margin:10px 0 4px;"></div>
+            <div id="signupRecaptcha" style="margin:10px 0 4px;${captchaEnabled()?'':'display:none;'}"></div>
             <button class="gl-btn-submit" type="submit" id="glSignupSubmitBtn" style="margin-top:6px;">
               <span>Create Account</span>
               <span style="font-size:17px;line-height:1;">›</span>
@@ -2766,6 +2786,7 @@ const ADMIN_NAV = [
   ['leaderboard','🏆','Leaderboard'],
   ['rankpredictor','🎯','Rank Predictor'],
   ['signups','🌐','Sign-Up Students'],
+  ['questionreports','🚩','Question Reports'],
   ['settings','⚙️','Settings'],
   ['audit','🧾','Audit Logs'],
 ];
@@ -2774,7 +2795,7 @@ const ADMIN_NAV = [
 const ADMIN_NAV_COLOR = {
   dashboard:'var(--blue)', students:'#10b981', questionbank:'#f59e0b', tests:'var(--blue)',
   live:'#ef4444', results:'#06b6d4', analytics:'#6366f1', leaderboard:'#f59e0b',
-  rankpredictor:'#a855f7', signups:'#0ea5e9', settings:'#94a3b8', audit:'#10b981',
+  rankpredictor:'#a855f7', signups:'#0ea5e9', questionreports:'#f97316', settings:'#94a3b8', audit:'#10b981',
 };
 // Live IST clock in the admin topbar — started once (guarded), keeps
 // ticking across re-renders without stacking intervals.
@@ -2803,6 +2824,8 @@ function admUpdateSidebarBadges(){
   if(stuBadge) stuBadge.textContent = S.adminStatsCache?.total_students ?? '';
   const testBadge = $('#navBadgeTests');
   if(testBadge) testBadge.textContent = (S.adminStatsCache?.tests_live>0)? `${S.adminStatsCache.tests_live} Active` : '';
+  const reportsBadge = $('#navBadgeReports');
+  if(reportsBadge){ reportsBadge.textContent = S.openReportsCount>0? S.openReportsCount : ''; reportsBadge.style.display = S.openReportsCount>0? 'inline-flex':'none'; }
 }
 function renderAdminShell(app){
   const nameParts = (S.currentUser.name||'').trim().split(/\s+/);
@@ -2827,7 +2850,8 @@ function renderAdminShell(app){
                 key==='live'? `<span id="sidebarLiveBadge" class="nav-badge-live" style="display:${S.hasLiveExam?'inline-flex':'none'}"><span class="dot"></span>LIVE</span>` :
                 key==='students'? `<span class="nav-badge" id="navBadgeStudents">${S.adminStatsCache?.total_students ?? ''}</span>` :
                 key==='tests'? `<span class="nav-badge" id="navBadgeTests">${(S.adminStatsCache?.tests_live>0)? S.adminStatsCache.tests_live+' Active':''}</span>` :
-                key==='rankpredictor'? `<span class="nav-badge nav-badge-ai">AI</span>` : ''}
+                key==='rankpredictor'? `<span class="nav-badge nav-badge-ai">AI</span>` :
+                key==='questionreports'? `<span class="nav-badge" id="navBadgeReports" style="display:${S.openReportsCount>0?'inline-flex':'none'};">${S.openReportsCount>0?S.openReportsCount:''}</span>` : ''}
             </li>`).join('')}
         </ul>
       </div>
@@ -2876,7 +2900,8 @@ async function renderAdminSection(root){
   const map = {
     dashboard: adminDashboard, students: adminStudents, questionbank: adminQuestionBank,
     tests: adminTests, live: adminLive, results: adminResults, analytics: adminAnalytics,
-    leaderboard: adminLeaderboard, rankpredictor: adminRankPredictor, signups: adminSignupStudents, settings: adminSettings, audit: adminAudit,
+    leaderboard: adminLeaderboard, rankpredictor: adminRankPredictor, signups: adminSignupStudents,
+    questionreports: adminQuestionReports, settings: adminSettings, audit: adminAudit,
   };
   root.innerHTML = `<div class="empty-state">Loading…</div>`;
   await map[S.adminSection](root);
@@ -2894,6 +2919,12 @@ async function refreshLiveBadge(){
     const { data, error } = await sb.rpc('admin_dashboard_stats');
     if(!error && data){ S.hasLiveExam = !!(Number(data.tests_live)>0); S.adminStatsCache = data; }
   }catch(e){ /* ignore — badges just stay as they were */ }
+  try{
+    // Separate, additive RPC (doesn't touch admin_dashboard_stats) so this
+    // new badge can't break anything the dashboard stats already power.
+    const { data: cnt, error: cntErr } = await sb.rpc('admin_count_open_question_reports');
+    if(!cntErr) S.openReportsCount = Number(cnt)||0;
+  }catch(e){ /* ignore — this feature may not be set up on the server yet */ }
   admUpdateSidebarBadges();
 }
 function startLiveBadgePolling(){
@@ -4846,6 +4877,7 @@ async function adminResults(root){
         <td style="display:flex;gap:6px;flex-wrap:wrap;">
           <button class="btn btn-sm btn-outline" onclick="viewAttemptDetail('${a.attempt_id}')">View Responses</button>
           <button class="btn btn-sm btn-outline" onclick="togglePartSectionRow('${a.attempt_id}')">📊 Part/Section-wise</button>
+          <button class="btn btn-sm btn-outline" onclick="viewAttemptDeviceLog('${a.attempt_id}')">🛡 Device/IP Log</button>
         </td></tr>
         <tr id="psrow-${a.attempt_id}" style="display:none;"><td colspan="8"><div id="psbody-${a.attempt_id}"></div></td></tr>`).join('')
         : `<tr><td colspan="8"><div class="empty-state">${q? 'No matching students found.' : 'No submitted attempts for this test yet.'}</div></td></tr>`}
@@ -4960,6 +4992,35 @@ window.togglePartSectionRow = async(attemptId)=>{
   const html = partSectionSummaryHTML(data.detail||[]);
   S._psCache[attemptId] = html;
   body.innerHTML = html;
+};
+// Device/IP evidence for tab-switch, fullscreen-exit and integrity-declaration
+// events on a given attempt — separate from viewAttemptDetail() (which shows
+// answers/scoring), reads from the new activity_device_log table via a new,
+// purely additive RPC.
+window.viewAttemptDeviceLog = async(attemptId)=>{
+  openModal('🛡 Device / IP Log', `<div class="empty-state">Loading…</div>`, 640);
+  const { data, error } = await sb.rpc('admin_get_attempt_device_logs', {p_attempt_id: attemptId});
+  const body = $('.modal-body');
+  if(!body) return;
+  if(error){
+    body.innerHTML = `<p style="font-size:13px;color:var(--text2);">Could not load device/IP log: ${esc(error.message)}<br>This feature may not be set up on the server yet.</p>`;
+    return;
+  }
+  const rows = data || [];
+  const EVENT_LABEL = { tab_switch:'⚠️ Tab Switch', fullscreen_exit:'⚠️ Fullscreen Exit', integrity_declared:'✅ Integrity Declared' };
+  body.innerHTML = rows.length? `
+    <div class="table-wrap"><table>
+      <thead><tr><th>Event</th><th>IP Address</th><th>Device / Browser</th><th>When</th></tr></thead>
+      <tbody>${rows.map(r=>`
+        <tr>
+          <td><span class="badge ${r.event_type==='integrity_declared'?'badge-success':'badge-error'}">${esc(EVENT_LABEL[r.event_type]||r.event_type)}</span></td>
+          <td style="font-family:monospace;font-size:12.5px;">${esc(r.ip_address||'—')}</td>
+          <td style="font-size:12px;max-width:260px;">${esc((r.user_agent||'—').slice(0,120))}</td>
+          <td>${fmtDateTime(r.created_at)}</td>
+        </tr>
+      `).join('')}</tbody>
+    </table></div>
+  ` : `<div class="empty-state">No device/IP records for this attempt yet — this may be an older attempt from before this feature was added.</div>`;
 };
 window.viewAttemptDetail = async(attemptId)=>{
   const { data, error } = await sb.rpc('admin_get_attempt_detail', {p_attempt_id: attemptId});
@@ -5377,6 +5438,11 @@ async function adminSettings(root){
       ${toggleHTML2('stg_su_live', S.appSettings?.signup_live!==false, 'Sign-Up open to new students')}
     </div>
     <div class="card pad" style="max-width:640px;margin-bottom:16px;">
+      <h4 style="font-size:15px;margin-bottom:6px;">CAPTCHA Verification ("I'm not a robot")</h4>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">Turn this Off to instantly hide the "I'm not a robot" check from the login and sign-up screens for everyone — useful if it's ever giving students trouble. Turn back On any time.</p>
+      ${toggleHTML2('stg_captcha_live', S.appSettings?.captcha_enabled!==false, 'CAPTCHA shown at login / sign-up')}
+    </div>
+    <div class="card pad" style="max-width:640px;margin-bottom:16px;">
       <h4 style="font-size:15px;margin-bottom:6px;">Google Sheet sync (Sign-Up data)</h4>
       <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">Paste your Google Apps Script Web App URL here — every new student Sign-Up will be pushed to your Google Sheet automatically.</p>
       <div class="field"><label>Webhook URL</label><input id="stg_sheet_url" value="${esc(S.appSettings?.sheet_webhook_url||'')}" placeholder="https://script.google.com/macros/s/.../exec"></div>
@@ -5459,6 +5525,21 @@ async function adminSettings(root){
     S.appSettings.signup_live = on;
     await logAudit('Toggle Student Sign-Up', on? 'Open':'Closed');
     toast('Student Sign-Up '+(on?'is now Open':'is now Closed'),'ok');
+  });
+  const captchaLive = { on: S.appSettings?.captcha_enabled!==false };
+  bindToggle2('stg_captcha_live', captchaLive, 'on');
+  const captchaToggleEl = $('#stg_captcha_live');
+  if(captchaToggleEl) captchaToggleEl.addEventListener('change', async()=>{
+    const on = captchaToggleEl.checked;
+    const { error } = await sb.rpc('admin_update_app_settings', {p_support_phone: S.appSettings?.support_phone||null, p_captcha_enabled: on});
+    if(error){
+      toast('Could not save: '+error.message+' — make sure the CAPTCHA-toggle SQL has been run.','err');
+      captchaToggleEl.checked=!on; const lbl=$('#stg_captcha_live_lbl'); if(lbl){lbl.textContent=(!on)?'On':'Off'; lbl.style.color=(!on)?'var(--success)':'var(--error)';}
+      return;
+    }
+    S.appSettings.captcha_enabled = on;
+    await logAudit('Toggle CAPTCHA', on? 'On':'Off');
+    toast('CAPTCHA is now '+(on?'On':'Off'),'ok');
   });
   $('#saveSupportSettingsBtn').onclick=async()=>{
     const phone = $('#stg_support_phone').value.trim();
@@ -5604,6 +5685,64 @@ async function bulkDeleteSignupStudents(){
 }
 
 // ---------- ADMIN: Audit Logs (real Supabase-backed) ----------
+const REPORT_REASON_LABELS = {
+  wrong_answer:'Wrong answer key', typo:'Typo / unclear wording',
+  bad_image:'Image issue', duplicate:'Duplicate question', other:'Other',
+};
+async function adminQuestionReports(root){
+  S.qReportsStatus = S.qReportsStatus || 'open';
+  root.innerHTML = `<div class="empty-state">Loading…</div>`;
+  const { data, error } = await sb.rpc('admin_list_question_reports', {p_status: S.qReportsStatus||null});
+  if(error){
+    root.innerHTML = `<div class="empty-state">Could not load question reports: ${esc(error.message)}<br><span style="font-size:12px;color:var(--text2);">This feature may not be set up on the server yet.</span></div>`;
+    return;
+  }
+  const rows = data || [];
+  root.innerHTML = `
+    <div class="table-toolbar" style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap;">
+      ${[['open','🟡 Open'],['resolved','✅ Resolved'],['dismissed','🚫 Dismissed'],['','All']].map(([v,l])=>`
+        <button type="button" class="btn btn-sm ${S.qReportsStatus===v?'btn-primary':'btn-outline'}" data-qr-status="${v}">${l}</button>
+      `).join('')}
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Question</th><th>Subject</th><th>Reason</th><th>Reported by</th><th>Details</th><th>When</th><th>Status</th><th></th></tr></thead>
+      <tbody>${rows.length? rows.map(r=>`
+        <tr>
+          <td style="max-width:260px;">${esc((r.question_text||'').slice(0,90))}${(r.question_text||'').length>90?'…':''}</td>
+          <td>${esc(r.subject||'—')}</td>
+          <td><span class="badge badge-warning">${esc(REPORT_REASON_LABELS[r.reason]||r.reason)}</span></td>
+          <td>${esc(r.student_name||'—')}</td>
+          <td style="max-width:200px;">${esc((r.details||'').slice(0,80))}</td>
+          <td>${fmtDateTime(r.created_at)}</td>
+          <td><span class="badge ${r.status==='open'?'badge-warning':r.status==='resolved'?'badge-success':'badge-grey'}">${esc(r.status)}</span></td>
+          <td style="white-space:nowrap;">
+            ${r.status==='open'? `
+              <button class="btn btn-sm btn-outline" data-qr-resolve="${esc(r.id)}">✅ Resolve</button>
+              <button class="btn btn-sm btn-ghost" data-qr-dismiss="${esc(r.id)}">Dismiss</button>
+            ` : ''}
+          </td>
+        </tr>
+      `).join('') : `<tr><td colspan="8"><div class="empty-state">No ${S.qReportsStatus||''} reports${S.qReportsStatus?'':' yet'}.</div></td></tr>`}</tbody>
+    </table></div>
+  `;
+  $$('[data-qr-status]').forEach(b=>b.onclick=()=>{ S.qReportsStatus=b.dataset.qrStatus; adminQuestionReports(root); });
+  $$('[data-qr-resolve]').forEach(b=>b.onclick=async()=>{
+    b.disabled=true;
+    const { error } = await sb.rpc('admin_resolve_question_report', {p_report_id:b.dataset.qrResolve, p_status:'resolved'});
+    if(error){ toast('Could not update report: '+error.message,'err'); b.disabled=false; return; }
+    toast('Marked resolved','ok');
+    refreshLiveBadge();
+    adminQuestionReports(root);
+  });
+  $$('[data-qr-dismiss]').forEach(b=>b.onclick=async()=>{
+    b.disabled=true;
+    const { error } = await sb.rpc('admin_resolve_question_report', {p_report_id:b.dataset.qrDismiss, p_status:'dismissed'});
+    if(error){ toast('Could not update report: '+error.message,'err'); b.disabled=false; return; }
+    toast('Dismissed','ok');
+    refreshLiveBadge();
+    adminQuestionReports(root);
+  });
+}
 async function adminAudit(root){
   root.innerHTML = `<div class="empty-state">Loading…</div>`;
   const { data: log, error } = await sb.rpc('admin_list_audit_logs');
@@ -6331,12 +6470,13 @@ async function studentErrorBook(root){
         }).join('')}
         ${revealed? (q.explanation? `<div style="margin-top:8px;padding:10px;background:#F9FAFB;border-radius:8px;font-size:13px;"><b>Explanation:</b> ${esc(q.explanation)}</div>`:'')
           : `<button class="btn btn-outline btn-sm" style="margin-top:10px;" onclick="S.errorBookRevealed.add('${q.question_id}'); renderStudentPage($('#stuContent'));">Show Answer & Explanation</button>`}
-        <div style="margin-top:10px;">${bookmarkButtonHTML(q, bookmarkedSet.has(q.question_id))}</div>
+        <div style="margin-top:10px;">${bookmarkButtonHTML(q, bookmarkedSet.has(q.question_id))}${reportButtonHTML(q)}</div>
       </div>`;
     }).join('')}
     ` : `<div class="empty-state">No incorrect questions yet — either you haven't submitted a test, or you're getting everything right! 🎉</div>`}
   `;
   wireBookmarkButtons(Object.fromEntries(all.map(q=>[q.question_id, q])));
+  wireReportButtons(Object.fromEntries(all.map(q=>[q.question_id, q])));
   const filt = $('#ebSubjFilter');
   if(filt) filt.onchange=(e)=>{ S.errorBookSubject = e.target.value; renderStudentPage(root); };
   const examFilt = $('#ebExamFilter');
@@ -6396,6 +6536,65 @@ function wireBookmarkButtons(questionsById){
     btn.onclick = ()=>toggleBookmark(q, btn);
   });
 }
+// ---------- Report a wrong/bad question ----------
+// A lightweight way for a student to flag a question they think has an
+// error (wrong answer key, typo, bad image, etc.) straight from the Error
+// Book, Marked for Review, or the post-exam Question-wise Review page.
+// Reports land in a moderation queue on the admin side (Question Reports)
+// — this never changes the question itself, so there's no risk to other
+// students seeing it until an admin actually reviews and fixes it.
+function reportButtonHTML(q){
+  if(!q.question_id) return '';
+  return `<button type="button" class="btn btn-sm btn-outline report-q-btn" data-rq-qid="${esc(q.question_id)}" style="margin-left:6px;">🚩⚠️ Report Question</button>`;
+}
+function wireReportButtons(questionsById){
+  $$('.report-q-btn[data-rq-qid]').forEach(btn=>{
+    const q = questionsById[btn.dataset.rqQid];
+    if(!q) return;
+    btn.onclick = ()=>openReportQuestionModal(q);
+  });
+}
+window.openReportQuestionModal = (q)=>{
+  const reasons = [
+    ['wrong_answer','Marked answer looks wrong'],
+    ['typo','Typo / unclear wording'],
+    ['bad_image','Image missing or unclear'],
+    ['duplicate','Duplicate question'],
+    ['other','Something else'],
+  ];
+  openModal('🚩 Report a Question', `
+    <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">This goes straight to the admin team for review. It won't change what other students see until an admin checks it.</p>
+    <p style="font-size:13.5px;background:#F9FAFB;border-radius:8px;padding:10px;margin-bottom:14px;">${esc((q.text||q.question_text||'').slice(0,180))}${(q.text||q.question_text||'').length>180?'…':''}</p>
+    <label style="font-size:12.5px;font-weight:700;display:block;margin-bottom:6px;">What's wrong?</label>
+    <select id="reportReasonSelect" style="width:100%;margin-bottom:12px;">
+      ${reasons.map(([v,l])=>`<option value="${v}">${esc(l)}</option>`).join('')}
+    </select>
+    <label style="font-size:12.5px;font-weight:700;display:block;margin-bottom:6px;">Details (optional)</label>
+    <textarea id="reportDetailsInput" rows="3" style="width:100%;resize:vertical;" placeholder="Anything specific that will help the admin fix it faster…"></textarea>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
+      <button class="btn btn-ghost" id="reportCancelBtn">Cancel</button>
+      <button class="btn btn-primary" id="reportSubmitBtn">Submit Report</button>
+    </div>
+  `, 480);
+  $('#reportCancelBtn').onclick = ()=>closeModal();
+  $('#reportSubmitBtn').onclick = async()=>{
+    const btn = $('#reportSubmitBtn');
+    btn.disabled = true; btn.textContent = 'Submitting…';
+    const reason = $('#reportReasonSelect').value;
+    const details = $('#reportDetailsInput').value.trim();
+    const { error } = await sb.rpc('student_report_question', {
+      p_student_id: S.currentUser.id, p_question_id: q.question_id,
+      p_reason: reason, p_details: details || null,
+    });
+    if(error){
+      toast('Could not submit report — this feature may not be set up on the server yet.', 'err');
+      btn.disabled = false; btn.textContent = 'Submit Report';
+      return;
+    }
+    toast('Thanks — reported to the admin team.', 'ok');
+    closeModal();
+  };
+};
 async function studentBookmarks(root){
   root.innerHTML = `<div class="empty-state">Loading your marked questions…</div>`;
   const { data, error } = await sb.rpc('student_list_bookmarks', {p_student_id: S.currentUser.id});
@@ -6441,6 +6640,7 @@ async function studentBookmarks(root){
           : `<button class="btn btn-outline btn-sm" style="margin-top:10px;" onclick="S.bookmarksRevealed.add('${q.question_id}'); renderStudentPage($('#stuContent'));">Show Answer &amp; Explanation</button>`}
         <div style="margin-top:10px;">
           <button type="button" class="btn btn-sm btn-outline bookmark-btn active" data-bm-id="${esc(q.question_id)}">🚩 Remove from Marked for Review</button>
+          <button type="button" class="btn btn-sm btn-outline report-q-btn" data-rq-id="${esc(q.question_id)}" style="margin-left:6px;">🚩⚠️ Report Question</button>
         </div>
       </div>`;
     }).join('')}
@@ -6457,6 +6657,13 @@ async function studentBookmarks(root){
       toggleBookmark({ question_id:row.question_id, text:row.question_text, subject:row.subject,
         option_a:row.option_a, option_b:row.option_b, option_c:row.option_c, option_d:row.option_d,
         correct:row.correct_letter, explanation:row.explanation, exam_code:row.exam_code }, btn);
+    };
+  });
+  $$('.report-q-btn[data-rq-id]').forEach(btn=>{
+    btn.onclick = ()=>{
+      const row = all.find(q=>q.question_id===btn.dataset.rqId);
+      if(!row) return;
+      openReportQuestionModal({ question_id:row.question_id, text:row.question_text });
     };
   });
 }
@@ -7039,12 +7246,26 @@ async function studentInstructionsPage(root){
       <h2 style="font-size:20px;margin-bottom:6px;">${esc(p.testName)}</h2>
       <p style="color:var(--text2);font-size:13.5px;margin-bottom:20px;">Please read the instructions carefully before you begin.</p>
       <div style="white-space:pre-wrap;line-height:1.7;font-size:14px;">${p.instructions? esc(p.instructions) : 'No special instructions have been provided for this test. Answer every question to the best of your ability, use Save & Next to move between questions, and Submit Section once you are done.'}</div>
-      <button class="btn btn-primary btn-block" style="margin-top:22px;padding:14px;" id="startExamBtn">I HAVE READ THE INSTRUCTIONS — START EXAM</button>
+      <label style="display:flex;align-items:flex-start;gap:10px;margin-top:22px;padding:14px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;font-size:13px;line-height:1.5;cursor:pointer;">
+        <input type="checkbox" id="integrityDeclareChk" style="margin-top:2px;flex-shrink:0;width:16px;height:16px;">
+        <span>I declare that I will attempt this exam on my own, without using any unfair means — including impersonation, unauthorized assistance from another person, or consulting any outside material, device, or website during the attempt. I understand that this attempt is recorded and that any violation may lead to disqualification.</span>
+      </label>
+      <button class="btn btn-primary btn-block" style="margin-top:14px;padding:14px;" id="startExamBtn" disabled>I HAVE READ THE INSTRUCTIONS — START EXAM</button>
     </div>
   `;
-  $('#startExamBtn').onclick=()=>startSection(p.sectionId, p.testId, p.partId);
+  const declareChk = $('#integrityDeclareChk');
+  const startBtn = $('#startExamBtn');
+  declareChk.onchange = ()=>{ startBtn.disabled = !declareChk.checked; startBtn.style.opacity = declareChk.checked? '1' : '0.55'; };
+  startBtn.style.opacity = '0.55';
+  startBtn.onclick=()=>{
+    if(!declareChk.checked) return;
+    // Recorded as part of the attempt's own audit trail (student_log_activity,
+    // already used for tab-switch/fullscreen events) rather than a separate
+    // table — one more event type on the same existing, already-reviewable log.
+    startSection(p.sectionId, p.testId, p.partId, true);
+  };
 }
-window.startSection = async(sectionId, testId, partId)=>{
+window.startSection = async(sectionId, testId, partId, declared)=>{
   if(S.startingSection) return; // guard against double-click firing this twice before the first request returns
   S.startingSection = true;
   const { data, error } = await sb.rpc('student_start_section', {p_token: S.studentToken, p_section_id: sectionId});
@@ -7077,6 +7298,14 @@ window.startSection = async(sectionId, testId, partId)=>{
   data.questions.forEach((q,i)=>{
     S.activeSection.responses[q.question_id] = { selected: q.selected_option, marked: !!q.is_marked, visited: i===0 };
   });
+  // Fire-and-forget: record the integrity declaration on the same audit
+  // trail as tab-switch/fullscreen events, so admins reviewing an attempt
+  // can see the student explicitly agreed not to use unfair means. Never
+  // blocks starting the exam even if this log call itself fails.
+  if(declared){
+    logActivityWithRetry({p_token:S.studentToken, p_attempt_id:data.attempt_id, p_event_type:'integrity_declared'}).catch(()=>{});
+    logViolationDeviceInfo(data.attempt_id, 'integrity_declared');
+  }
   S.pendingSection = null;
   S.navBusy = false;
   S.submittingSection = false;
@@ -7090,6 +7319,13 @@ window.viewMyResult = (attemptId, examCode)=>{ S.viewingResultAttemptId = attemp
 // EXAM ENGINE — one Section at a time, server-authoritative timer
 // =========================================================================
 async function renderExamEngine(app){
+  // The MedMind AI fab attaches itself to document.body (not inside `app`),
+  // specifically so it survives normal page-to-page re-renders. That means
+  // it was NOT being removed when navigating straight from Dashboard/
+  // Analytics into a live exam — it visually sat on top of the toolbar
+  // buttons, and worse, its chat was still functionally reachable during a
+  // timed, proctored attempt. An exam screen must never offer it.
+  unmountMedMindFab();
   const sec = S.activeSection;
   if(!sec){ S.studentPage='dashboard'; return renderStudentShell(app); }
   const remaining = Math.max(0,(new Date(sec.serverEndAt).getTime()-Date.now())/1000);
@@ -7700,6 +7936,24 @@ async function logActivityWithRetry(payload){
   }
   return res;
 }
+// Best-effort, fire-and-forget device/IP capture for a violation event —
+// a completely SEPARATE call from logActivityWithRetry() above, writing to
+// its own new table via a new RPC, so the existing student_log_activity
+// signature (which the Live Monitor already depends on) is never touched.
+// The real IP is read server-side from the request headers (can't be
+// spoofed from here the way a client-supplied value could); the device/
+// browser string is read client-side since there's no other way to get it.
+// Never awaited by callers, and any error here (e.g. this feature isn't
+// set up on the server yet) is silently swallowed — it must never affect
+// the exam flow or the existing violation-count logic.
+function logViolationDeviceInfo(attemptId, eventType){
+  try{
+    sb.rpc('student_log_violation_device', {
+      p_token: S.studentToken, p_attempt_id: attemptId, p_event_type: eventType,
+      p_user_agent: navigator.userAgent || null,
+    }).catch(()=>{});
+  }catch(e){ /* ignore */ }
+}
 function attachExamSecurity(){
   const sec = S.activeSection;
   if(!sec) return;
@@ -7716,6 +7970,7 @@ function attachExamSecurity(){
     if(document.hidden && S.studentPage==='exam' && S.activeSection){
       const { data, error } = await logActivityWithRetry({p_token:S.studentToken, p_attempt_id:S.activeSection.attemptId, p_event_type:'tab_switch'});
       if(error && isSessionInvalidError(error)){ handleSessionKickedOut(); return; }
+      logViolationDeviceInfo(S.activeSection.attemptId, 'tab_switch');
       const count = data ?? (++S.activeSection.tabSwitchCount);
       S.activeSection.tabSwitchCount = count;
       const limit = S.activeSection.tabSwitchLimit || 3;
@@ -7732,6 +7987,7 @@ function attachExamSecurity(){
     if(sec.fullscreenRequired && !document.fullscreenElement && S.studentPage==='exam' && S.activeSection){
       const { data, error } = await logActivityWithRetry({p_token:S.studentToken, p_attempt_id:S.activeSection.attemptId, p_event_type:'fullscreen_exit'});
       if(error && isSessionInvalidError(error)){ handleSessionKickedOut(); return; }
+      logViolationDeviceInfo(S.activeSection.attemptId, 'fullscreen_exit');
       // Enforced the same way as tab-switching: repeatedly leaving fullscreen
       // is just as easy a way to consult outside material, so it now counts
       // toward the same violation limit instead of only ever being logged.
@@ -7779,6 +8035,15 @@ async function studentResult(root){
     return;
   }
   const totalQ = data.correct + data.incorrect + data.unattempted;
+  // "You vs Class Average" — a brand-new, additive RPC (does not touch
+  // student_get_result at all). Fails silently to "no comparison shown" if
+  // the SQL hasn't been run yet, or if there's only one submitted attempt
+  // (comparing yourself to yourself isn't useful).
+  let classAvg = null;
+  try{
+    const { data: avgData, error: avgErr } = await sb.rpc('student_get_class_average', {p_token:S.studentToken, p_attempt_id: attemptId});
+    if(!avgErr && avgData && Number(avgData.total_attempts)>1) classAvg = avgData;
+  }catch(e){ /* feature not set up yet — just don't show the comparison */ }
 
   const subjAgg = {};
   (data.detail||[]).forEach(d=>{
@@ -7938,6 +8203,26 @@ async function studentResult(root){
       <div class="gld-stat-card"><div class="gld-stat-icon-wrapper" style="background:var(--gld-accent-light);">📈</div><div class="gld-stat-info"><div class="gld-stat-number">${data.percentile}</div><div class="gld-stat-desc">Percentile</div></div></div>`:''}
       ${avgTime? `<div class="gld-stat-card"><div class="gld-stat-icon-wrapper" style="background:#f1f5f9;">⏱</div><div class="gld-stat-info"><div class="gld-stat-number">${avgTime}s</div><div class="gld-stat-desc">Avg / question</div></div></div>`:''}
     </div>
+    ${classAvg? `<div class="glr-parts-card fade-in-up" style="animation-delay:.1s;">
+      <h3 style="font-family:'Outfit',sans-serif;font-size:17px;font-weight:800;margin-bottom:12px;">📊 You vs Class Average</h3>
+      <div class="gld-stats-container" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));">
+        <div class="gld-stat-card">
+          <div class="gld-stat-icon-wrapper" style="background:${Number(data.score)>=Number(classAvg.avg_score)?'var(--gld-success-light)':'var(--gld-danger-light)'};">${Number(data.score)>=Number(classAvg.avg_score)?'▲':'▼'}</div>
+          <div class="gld-stat-info">
+            <div class="gld-stat-number" style="color:${Number(data.score)>=Number(classAvg.avg_score)?'var(--gld-success)':'var(--gld-danger)'};">${Number(data.score).toFixed(2)} <span style="font-size:12px;font-weight:600;color:var(--gld-text-sub);">vs ${Number(classAvg.avg_score).toFixed(2)}</span></div>
+            <div class="gld-stat-desc">Your Score vs Class Average</div>
+          </div>
+        </div>
+        <div class="gld-stat-card">
+          <div class="gld-stat-icon-wrapper" style="background:${Number(data.accuracy)>=Number(classAvg.avg_accuracy)?'var(--gld-success-light)':'var(--gld-danger-light)'};">${Number(data.accuracy)>=Number(classAvg.avg_accuracy)?'▲':'▼'}</div>
+          <div class="gld-stat-info">
+            <div class="gld-stat-number" style="color:${Number(data.accuracy)>=Number(classAvg.avg_accuracy)?'var(--gld-success)':'var(--gld-danger)'};">${data.accuracy}% <span style="font-size:12px;font-weight:600;color:var(--gld-text-sub);">vs ${Number(classAvg.avg_accuracy).toFixed(1)}%</span></div>
+            <div class="gld-stat-desc">Your Accuracy vs Class Average</div>
+          </div>
+        </div>
+      </div>
+      <p style="font-size:11.5px;color:var(--gld-text-sub);margin-top:10px;">Based on ${classAvg.total_attempts} submitted attempt${classAvg.total_attempts===1?'':'s'} for this test, including yours.</p>
+    </div>` : ''}
     ${masteryHTML}
     ${partSectionHTML}
     <div class="glr-advice-band fade-in-up" style="animation-delay:.16s;">
@@ -8173,7 +8458,7 @@ async function studentReview(root){
           </div>`;
         }).join('')}
         ${d.explanation? `<div style="margin-top:8px;padding:10px;background:#F9FAFB;border-radius:8px;font-size:13px;"><b>Explanation:</b> ${esc(d.explanation)}</div>`:''}
-        ${d.question_id? `<div class="no-print" style="margin-top:10px;">${bookmarkButtonHTML(d, bookmarkedSet.has(d.question_id))}</div>` : ''}
+        ${d.question_id? `<div class="no-print" style="margin-top:10px;">${bookmarkButtonHTML(d, bookmarkedSet.has(d.question_id))}${reportButtonHTML(d)}</div>` : ''}
       </div>`;
     }).join('')}
   `;
@@ -8183,6 +8468,7 @@ async function studentReview(root){
     document.getElementById('revq-'+btn.dataset.idx)?.scrollIntoView({behavior:'smooth',block:'center'});
   });
   wireBookmarkButtons(Object.fromEntries(detail.filter(d=>d.question_id).map(d=>[d.question_id, d])));
+  wireReportButtons(Object.fromEntries(detail.filter(d=>d.question_id).map(d=>[d.question_id, d])));
 }
 
 
