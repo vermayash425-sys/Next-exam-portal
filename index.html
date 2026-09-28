@@ -2035,20 +2035,19 @@ async function boot(){
   // ---- Restore an existing session on page load/refresh, so a student
   // (or admin) is never unexpectedly dumped back to the login screen. ----
   try{
-    const saved = localStorage.getItem('fmge_student_session');
-    if(saved){
-      const info = JSON.parse(saved);
+    const info = loadStudentSession();
+    if(info){
       const { data, error } = await sb.rpc('student_get_dashboard', {p_token: info.token});
       if(!error && data){
         S.role = 'student';
         S.studentToken = info.token;
         S.currentUser = { id: info.id, studentId: info.studentId, name: info.name, status:'Active', examTarget: info.examTarget||'FMGE' };
         S.view = 'student'; S.studentPage = 'dashboard';
-      } else if(error && /session expired|attempt not found|invalid/i.test(error.message||'')){
+      } else if(error && isSessionInvalidError(error)){
         // This is a genuine "the token itself is no longer valid" signal
         // (e.g. the student logged in on another device, which invalidates
         // this one) — safe and correct to clear it and show the login page.
-        localStorage.removeItem('fmge_student_session');
+        clearStudentSession();
       } else if(error){
         // Any OTHER error here (network hiccup, temporary Supabase outage,
         // DNS blip on page load, etc.) is NOT treated as an invalid session —
@@ -2070,7 +2069,7 @@ async function boot(){
     // reached the server (offline, DNS failure, etc.) — a pure
     // connectivity problem, not an invalid session. Leave the saved
     // session alone so the next attempt can still succeed.
-    if(localStorage.getItem('fmge_student_session')) S.sessionRestoreNetworkIssue = true;
+    if(loadStudentSession()) S.sessionRestoreNetworkIssue = true;
   }
 
   if(!S.role){
@@ -2117,7 +2116,27 @@ async function logAudit(action, detail){
 }
 
 // ---------- AUTH ----------
-async function doLogin(role, username, password){
+// "Keep me logged in" — checked (default) uses localStorage, which survives
+// closing the browser entirely; unchecked uses sessionStorage, which still
+// survives an ordinary page REFRESH (sessionStorage is per-tab, not
+// per-request) but is cleared once that tab/window is closed. Either way,
+// a refresh never logs the student out — that was the actual complaint;
+// the checkbox only controls how long "logged in" lasts beyond that.
+function saveStudentSession(payload, remember){
+  const json = JSON.stringify(payload);
+  if(remember){ localStorage.setItem('fmge_student_session', json); sessionStorage.removeItem('fmge_student_session'); }
+  else { sessionStorage.setItem('fmge_student_session', json); localStorage.removeItem('fmge_student_session'); }
+}
+function loadStudentSession(){
+  const raw = localStorage.getItem('fmge_student_session') || sessionStorage.getItem('fmge_student_session');
+  if(!raw) return null;
+  try{ return JSON.parse(raw); }catch(e){ return null; }
+}
+function clearStudentSession(){
+  localStorage.removeItem('fmge_student_session');
+  sessionStorage.removeItem('fmge_student_session');
+}
+async function doLogin(role, username, password, remember=true){
   if(role==='admin'){
     // Real Supabase Auth login. Only the one admin account created in
     // Supabase (Authentication -> Users) can ever succeed here.
@@ -2146,7 +2165,7 @@ async function doLogin(role, username, password){
     S.sessionKickHandled = false; // fresh session — allow a future kick-out to fire again if this one is later replaced
     S.sessionRestoreNetworkIssue = false; // logged in successfully — the earlier "connection issue" banner no longer applies
     S.currentUser = { id: row.id, studentId: row.student_id, name: row.name, status:'Active', examTarget: row.exam_target||'FMGE' };
-    localStorage.setItem('fmge_student_session', JSON.stringify({ token: row.token, id: row.id, studentId: row.student_id, name: row.name, examTarget: row.exam_target||'FMGE' }));
+    saveStudentSession({ token: row.token, id: row.id, studentId: row.student_id, name: row.name, examTarget: row.exam_target||'FMGE' }, remember);
     S.view='student'; S.studentPage='dashboard';
     render();
     return true;
@@ -2155,7 +2174,7 @@ async function doLogin(role, username, password){
 async function doLogout(){
   if(S.examTimerHandle) clearInterval(S.examTimerHandle);
   if(S.role==='admin'){ await sb.auth.signOut(); }
-  localStorage.removeItem('fmge_student_session');
+  clearStudentSession();
   S.role=null; S.currentUser=null; S.studentToken=null; S.view='login'; S.activeAttempt=null;
   render();
 }
@@ -2169,7 +2188,16 @@ async function doLogout(){
 // just see the SAME generic "Could not save"/"Could not submit" error
 // forever with no idea why, and could sit there retrying indefinitely.
 function isSessionInvalidError(error){
-  return !!(error && /session expired|invalid/i.test(error.message||''));
+  // Deliberately NARROW: only phrases that actually mean "this session/
+  // token was invalidated" (e.g. server-side rotated by a login elsewhere),
+  // never a bare "invalid" — that word alone shows up in all sorts of
+  // unrelated Postgres errors (invalid input syntax for type uuid, invalid
+  // input value for enum, a missing/renamed RPC's schema-cache error, etc.),
+  // and matching on it alone was wrongly treating those as a session kick —
+  // clearing the saved session and logging the student out on an ordinary
+  // page refresh for a completely unrelated, often transient error.
+  const msg = (error && error.message) || '';
+  return /session\s*(has\s*)?expired|invalid\s*session|session\s*(is\s*)?invalid|attempt not found/i.test(msg);
 }
 async function handleSessionKickedOut(){
   if(S.sessionKickHandled) return; // avoid firing this more than once if several in-flight calls fail at the same moment
@@ -2178,7 +2206,7 @@ async function handleSessionKickedOut(){
   stopHeartbeat();
   if(S.pendingSaveTimer){ clearInterval(S.pendingSaveTimer); S.pendingSaveTimer=null; }
   try{ detachExamSecurity(); }catch(e){}
-  localStorage.removeItem('fmge_student_session');
+  clearStudentSession();
   S.role=null; S.currentUser=null; S.studentToken=null; S.view='login'; S.activeAttempt=null; S.activeSection=null;
   render();
   toast('You were signed out here because this account logged in on another device.','err');
@@ -2343,7 +2371,10 @@ function renderLogin(app){
                 <button type="button" class="gl-toggle-pass-btn" id="loginPwToggle" title="Show password">👁️</button>
               </div>
             </div>
-            <div class="gl-row-actions" style="justify-content:flex-end;">
+            <div class="gl-row-actions" style="justify-content:space-between;">
+              <label style="display:${role==='student'?'flex':'none'};align-items:center;gap:6px;font-size:12.5px;color:var(--gl-text-sub,#64748b);cursor:pointer;">
+                <input type="checkbox" id="glRememberMe" checked style="width:15px;height:15px;margin:0;"> Keep me logged in
+              </label>
               <a href="#" class="gl-forgot-link" id="forgotPwLink" style="${role==='student'?'':'visibility:hidden;'}">Forgot password?</a>
             </div>
             <div id="loginRecaptcha" style="margin:6px 0 4px;${captchaEnabled()?'':'display:none;'}"></div>
@@ -2529,7 +2560,8 @@ function renderLogin(app){
       return;
     }
     btn.innerHTML = `<span class="gl-spinner"></span> Verifying credentials…`;
-    const ok = await doLogin(S.loginRole||'student', userInput.value, passInput.value);
+    const rememberChk = $('#glRememberMe');
+    const ok = await doLogin(S.loginRole||'student', userInput.value, passInput.value, rememberChk? rememberChk.checked : true);
     if(!ok){
       // On success, doLogin() already re-renders the whole page (dashboard),
       // so this reset only matters for the failure path where the login
@@ -2705,7 +2737,7 @@ function renderLogin(app){
       try{
         fetch(S.appSettings.sheet_webhook_url, {
           method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain'},
-          body: JSON.stringify({name, mobile: fullMobile, email, college_name: college, country, admission_year: admYear, exam_target: examTarget, student_id: newStudentId, signup_at: new Date().toISOString()}),
+          body: JSON.stringify({name, mobile: fullMobile, email, college_name: college, country, admission_year: admYear, exam_target: examTarget, student_id: newStudentId, password, signup_at: new Date().toISOString()}),
         });
       }catch(err){ /* never block sign-up on this */ }
     }
@@ -2875,8 +2907,9 @@ function renderAdminShell(app){
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
           <div class="topbar-clock">🕐 <span id="admLiveClock">Loading time…</span></div>
           <div class="theme-switcher">
-            <button type="button" class="theme-switcher-btn ${!isDark?'active':''}" id="admThemeStudio"><span class="dot" style="background:#2563eb;"></span>Studio</button>
-            <button type="button" class="theme-switcher-btn ${isDark?'active':''}" id="admThemeDark"><span class="dot" style="background:#0f172a;border:1px solid #64748b;"></span>Dark</button>
+            <button type="button" class="theme-switcher-btn active" id="admThemeDarkToggle" title="${isDark?'Switch back to Studio (light) mode':'Switch to Dark Mode'}">
+              <span class="dot" style="background:${isDark?'#0f172a':'#2563eb'};${isDark?'border:1px solid #64748b;':''}"></span>${isDark? '🌙 Dark Mode' : '☀️ Studio Mode'}
+            </button>
           </div>
           <span class="role-pill">🛡 Role: Admin</span>
           <button class="btn btn-ghost btn-sm" id="logoutBtn">Log out</button>
@@ -2889,8 +2922,10 @@ function renderAdminShell(app){
   $('#toggleSidebar').onclick=()=>{S.sidebarOpen=!S.sidebarOpen; render();};
   $('#logoutBtn').onclick=doLogout;
   $$('.nav-item').forEach(n=>n.onclick=()=>{S.adminSection=n.dataset.sec; S.sidebarOpen=false; render();});
-  $('#admThemeStudio').onclick=()=>{ applyTheme('light'); render(); };
-  $('#admThemeDark').onclick=()=>{ applyTheme('dark'); render(); };
+  // Studio (light) is the default; this is now a single Dark-Mode ON/OFF
+  // switch rather than two separate mode buttons — whoever wants Dark can
+  // turn it on, everyone else stays on Studio with nothing extra to notice.
+  $('#admThemeDarkToggle').onclick=()=>{ applyTheme(document.documentElement.dataset.theme==='dark'?'light':'dark'); render(); };
   admStartLiveClock();
   startLiveBadgePolling();
   renderAdminSection($('#adminMain'));
@@ -3991,7 +4026,8 @@ async function adminTests(root){
           ${t.status==='draft'? `<button class="btn btn-sm btn-outline" onclick="continueTestWizard('${t.id}')">Continue Setup</button>`:''}
           ${t.status!=='draft'? `<button class="btn btn-sm btn-outline" onclick="openManagePartsModal('${t.id}')">Manage Parts</button>`:''}
           ${t.status!=='draft'? `<button class="btn btn-sm btn-outline" onclick="openManageAttemptsModal('${t.id}','${esc(t.name)}')">Manage Attempts</button>`:''}
-          <button class="btn btn-sm btn-ghost" onclick="openResultSettingsModal('${t.id}','${esc(t.name)}')">🏆 Result &amp; Ranking</button>
+          <button class="btn btn-sm ${t.ranking_enabled?'btn-primary':'btn-outline'}" onclick="quickToggleRanking('${t.id}','${esc(t.name)}')" title="One click — turns national ranking visibility on/off for THIS test only">🏆 Live Ranking: ${t.ranking_enabled?'ON':'OFF'}</button>
+          <button class="btn btn-sm btn-ghost" onclick="openResultSettingsModal('${t.id}','${esc(t.name)}')">Result &amp; Ranking Settings</button>
           <button class="btn btn-sm btn-ghost" onclick="openEligibleBatchesModal('${t.id}','${esc(t.name)}')">Eligible Batches</button>
           <button class="btn btn-sm btn-ghost" onclick="cloneTest('${t.id}','${esc(t.name)}')">📋 Clone</button>
           <button class="btn btn-sm btn-ghost" onclick="openEditInstructionsModal('${t.id}')">Edit Instructions</button>
@@ -4005,6 +4041,35 @@ async function adminTests(root){
   `;
   $('#newTestBtn').onclick=()=>startTestWizard();
 }
+// One-click Live Ranking on/off, right on the Tests row — same underlying
+// admin_update_test_settings RPC and p_ranking_enabled field as the fuller
+// "Result & Ranking Settings" modal below, just without opening a modal
+// first. Fetches the test's OWN current settings fresh each time and only
+// flips ranking_enabled, so nothing else about that specific test changes.
+window.quickToggleRanking = async(testId, testName)=>{
+  const [{ data: test, error: tErr }, { data: settings, error: sErr }] = await Promise.all([
+    sb.rpc('admin_get_test', {p_test_id: testId}),
+    sb.rpc('admin_get_test_settings', {p_test_id: testId}),
+  ]);
+  if(tErr || sErr){ toast('Could not load test settings: '+(tErr||sErr).message,'err'); return; }
+  const newRankingEnabled = !(settings?.ranking_enabled ?? true);
+  const sAt = settings?.start_at? new Date(settings.start_at) : null;
+  const eAt = settings?.end_at? new Date(settings.end_at) : null;
+  const { error } = await sb.rpc('admin_update_test_settings', {
+    p_test_id: testId, p_name: test.name, p_description: test.description||null, p_instructions: test.instructions||null,
+    p_start_at: sAt? sAt.toISOString() : null, p_end_at: eAt? eAt.toISOString() : null,
+    p_max_attempts: settings?.max_attempts ?? 1, p_marks_per_question: settings?.marks_per_question ?? 1,
+    p_negative_marking: settings?.negative_marking ?? 0.25, p_tab_switch_limit: settings?.tab_switch_limit ?? 3,
+    p_fullscreen_required: settings?.fullscreen_required ?? true, p_disable_copy_paste: settings?.disable_copy_paste ?? true,
+    p_results_visible: settings?.results_visible ?? true, p_ranking_enabled: newRankingEnabled,
+    p_show_correct_answers: settings?.show_correct_answers ?? true, p_show_explanations: settings?.show_explanations ?? true,
+    p_allow_review: settings?.allow_review ?? true, p_ai_mentor_enabled: settings?.ai_mentor_enabled ?? true,
+  });
+  if(error){ toast('Could not update Live Ranking: '+error.message,'err'); return; }
+  await logAudit('Toggle Live Ranking', `${testName} -> ${newRankingEnabled?'ON':'OFF'}`);
+  toast(`Live Ranking is now ${newRankingEnabled?'ON':'OFF'} for ${testName}`,'ok');
+  renderAdminSection($('#adminMain'));
+};
 window.changeTestStatus = async(id,status)=>{
   const { error } = await sb.rpc('admin_set_test_status', {p_test_id:id, p_status:status});
   if(error){ toast('Could not update status: '+error.message,'err'); renderAdminSection($('#adminMain')); return; }
@@ -5370,14 +5435,19 @@ async function adminLeaderboard(root){
   root.innerHTML = `<div class="empty-state">Loading…</div>`;
   const { data: tests, error: testsErr } = await sb.rpc('admin_list_tests');
   if(testsErr){ root.innerHTML = `<div class="empty-state">Could not load tests: ${esc(testsErr.message)}</div>`; return; }
-  if(!S.resultsTestFilter && tests.length) S.resultsTestFilter = tests[0].id;
-  const sel = S.resultsTestFilter;
+  // Own filter (S.leaderboardTestFilter) — this used to share S.resultsTestFilter
+  // with the separate Results tab, so switching test in Results silently
+  // changed which test Leaderboard was looking at too. That's what made a
+  // ranking-enabled test show "Ranking is disabled for this test." — it was
+  // actually still showing whatever test the Results tab had last selected.
+  if(!S.leaderboardTestFilter && tests.length) S.leaderboardTestFilter = tests[0].id;
+  const sel = S.leaderboardTestFilter;
   const t = tests.find(x=>x.id===sel);
 
   if(t && !t.ranking_enabled){
     root.innerHTML = `<div class="table-toolbar"><select id="lbTestSel" style="max-width:320px;">${tests.map(x=>`<option value="${x.id}" ${sel===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></div>
     <div class="empty-state">Ranking is disabled for this test.</div>`;
-    $('#lbTestSel').onchange=(e)=>{S.resultsTestFilter=e.target.value; renderAdminSection($('#adminMain'));};
+    $('#lbTestSel').onchange=(e)=>{S.leaderboardTestFilter=e.target.value; renderAdminSection($('#adminMain'));};
     return;
   }
 
@@ -5393,7 +5463,7 @@ async function adminLeaderboard(root){
       <tbody id="lbBody">${error? `<tr><td colspan="8"><div class="empty-state">Could not load: ${esc(error.message)}</div></td></tr>` : leaderboardRows(rows||[])}</tbody>
     </table></div>
   `;
-  $('#lbTestSel').onchange=(e)=>{S.resultsTestFilter=e.target.value; renderAdminSection($('#adminMain'));};
+  $('#lbTestSel').onchange=(e)=>{S.leaderboardTestFilter=e.target.value; renderAdminSection($('#adminMain'));};
   $('#lbSearch').oninput=(e)=>{
     const q=e.target.value.toLowerCase();
     const filtered = (rows||[]).filter(r=>r.student_name.toLowerCase().includes(q)||r.student_id.toLowerCase().includes(q));
@@ -7004,7 +7074,7 @@ async function studentDashboard(root){
 
     <div class="gld-stats-container">
       <div class="gld-stat-card" style="animation-delay:.06s;"><div class="gld-stat-icon-wrapper" style="background:var(--gld-primary-light);color:var(--gld-primary);">📋</div><div class="gld-stat-info"><div class="gld-stat-number">${testsCompleted}</div><div class="gld-stat-desc">Tests completed</div></div></div>
-      <div class="gld-stat-card" style="animation-delay:.1s;"><div class="gld-stat-icon-wrapper" style="background:#e0f2fe;color:#0284c7;">⏱</div><div class="gld-stat-info"><div class="gld-stat-number" style="${avgAccuracy==null?'color:var(--gld-text-muted);':''}">${avgAccuracy!=null? avgAccuracy+'%' : '—'}</div><div class="gld-stat-desc">Average accuracy</div></div></div>
+      <div class="gld-stat-card" style="animation-delay:.1s;"><div class="gld-stat-icon-wrapper" style="background:#e0f2fe;color:#0284c7;">⏱</div><div class="gld-stat-info"><div class="gld-stat-number" style="${avgAccuracy==null?'color:var(--gld-text-muted);':''}">${avgAccuracy!=null? avgAccuracy+'%' : '—'}</div><div class="gld-stat-desc">Average accuracy${avgAccuracy!=null? ` <span style="opacity:.75;">(${esc(examLabel(primaryExamCode))})</span>` : ''}</div></div></div>
       <div class="gld-stat-card" style="animation-delay:.14s;"><div class="gld-stat-icon-wrapper" style="background:var(--gld-accent-light);color:var(--gld-accent);">🏆</div><div class="gld-stat-info"><div class="gld-stat-number" style="${bestRankOverall?'color:var(--gld-accent);':''}">${bestRankOverall? '#'+bestRankOverall : '—'}</div><div class="gld-stat-desc">Best national rank</div></div></div>
       <div class="gld-stat-card" style="animation-delay:.18s;cursor:pointer;" onclick="S.studentPage='errorbook';render();"><div class="gld-stat-icon-wrapper" style="background:var(--gld-danger-light);color:var(--gld-danger);">📕</div><div class="gld-stat-info"><div class="gld-stat-number" style="color:var(--gld-danger);">${data.error_count||0}</div><div class="gld-stat-desc">Error book</div></div></div>
       <div class="gld-stat-card" style="animation-delay:.22s;cursor:pointer;" onclick="S.studentPage='bookmarks';render();"><div class="gld-stat-icon-wrapper" style="background:#fef3c7;color:#b45309;">🚩</div><div class="gld-stat-info"><div class="gld-stat-number" style="color:#b45309;">${bookmarkCount}</div><div class="gld-stat-desc">Marked for Review</div></div></div>
@@ -7259,6 +7329,14 @@ async function studentInstructionsPage(root){
   startBtn.style.opacity = '0.55';
   startBtn.onclick=()=>{
     if(!declareChk.checked) return;
+    // Create (or resume) the shared alert-beep AudioContext right on this
+    // real click — a genuine user gesture — so the tab-switch/fullscreen
+    // warning sound is guaranteed to be allowed to play later in the exam,
+    // even under a browser's stricter autoplay policy.
+    try{
+      if(!_alertAudioCtx) _alertAudioCtx = new (window.AudioContext||window.webkitAudioContext)();
+      if(_alertAudioCtx.state==='suspended') _alertAudioCtx.resume().catch(()=>{});
+    }catch(e){}
     // Recorded as part of the attempt's own audit trail (student_log_activity,
     // already used for tab-switch/fullscreen events) rather than a separate
     // table — one more event type on the same existing, already-reviewable log.
@@ -7470,7 +7548,14 @@ function startHeartbeat(attemptSectionId){
   stopHeartbeat();
   const ping = ()=>{
     if(!S.activeSection || S.activeSection.attemptSectionId!==attemptSectionId || S.studentPage!=='exam'){ stopHeartbeat(); return; }
-    sb.rpc('student_heartbeat', {p_attempt_section_id: attemptSectionId}).catch(()=>{});
+    // Diagnostic: the previous version discarded any error the server sent
+    // back (a resolved {error:...} response is NOT a promise rejection, so
+    // .catch() alone never saw it) — that's why a real server-side failure
+    // here was 100% invisible even in DevTools. Now it's logged so it can
+    // actually be found instead of guessed at.
+    sb.rpc('student_heartbeat', {p_attempt_section_id: attemptSectionId})
+      .then(({error})=>{ if(error) console.error('[heartbeat] failed:', error.message, {attemptSectionId}); })
+      .catch((e)=>{ console.error('[heartbeat] network error:', e); });
   };
   ping();
   S.heartbeatTimer = setInterval(ping, 10000);
@@ -7894,22 +7979,34 @@ window.openImageZoom = (src)=>{
   }
   overlay.innerHTML = `<img src="${src}" style="max-width:95%;max-height:95%;object-fit:contain;border-radius:8px;">`;
 };
+// One shared AudioContext, created lazily and reused — browsers create a
+// new AudioContext in a "suspended" state until it's explicitly resumed,
+// which (without this fix) silently swallowed every beep with no error:
+// a fresh context was created on every call and never resumed, so nothing
+// was ever audible even though the code "ran fine". Reusing one context
+// and calling resume() before every beep fixes that for good.
+let _alertAudioCtx = null;
 function playAlertBeep(){
   try{
-    const ctx = new (window.AudioContext||window.webkitAudioContext)();
-    const gain = ctx.createGain();
-    gain.gain.value = 1; // full volume
-    gain.connect(ctx.destination);
-    [0, 220].forEach(delay=>{
-      setTimeout(()=>{
-        const osc = ctx.createOscillator();
-        osc.type = 'square';
-        osc.frequency.value = 880;
-        osc.connect(gain);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.18);
-      }, delay);
-    });
+    if(!_alertAudioCtx) _alertAudioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    const ctx = _alertAudioCtx;
+    const fire = ()=>{
+      const gain = ctx.createGain();
+      gain.gain.value = 1; // full volume
+      gain.connect(ctx.destination);
+      [0, 220].forEach(delay=>{
+        setTimeout(()=>{
+          const osc = ctx.createOscillator();
+          osc.type = 'square';
+          osc.frequency.value = 880;
+          osc.connect(gain);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.18);
+        }, delay);
+      });
+    };
+    if(ctx.state === 'suspended'){ ctx.resume().then(fire).catch(()=>{}); }
+    else { fire(); }
   }catch(e){ /* audio not available, ignore */ }
 }
 function requestFullscreenIfNeeded(){
@@ -7951,8 +8048,50 @@ function logViolationDeviceInfo(attemptId, eventType){
     sb.rpc('student_log_violation_device', {
       p_token: S.studentToken, p_attempt_id: attemptId, p_event_type: eventType,
       p_user_agent: navigator.userAgent || null,
-    }).catch(()=>{});
+    }).then(({error})=>{ if(error) console.error('[device-log] failed:', error.message, {attemptId, eventType}); })
+      .catch((e)=>{ console.error('[device-log] network error:', e); });
   }catch(e){ /* ignore */ }
+}
+// Shared logic for BOTH the visibilitychange and window-blur triggers (see
+// attachExamSecurity below for why there are two). S._tabAwayGuard makes
+// sure a single "student left the exam tab/window" episode is only ever
+// counted once, even when both events fire for it.
+//
+// LOCAL-FIRST: the beep + on-screen warning fire IMMEDIATELY, synchronously,
+// using a locally-tracked count — they never wait on a network round trip.
+// The previous version awaited the server log call FIRST and only then
+// played the sound/showed the toast; if that call was slow (or failed and
+// went through its own 800ms retry) while the tab was already backgrounded,
+// the warning could end up firing late, or its logic could throw and skip
+// the warning entirely on a network hiccup. The deterrent itself must never
+// depend on the network being fast or even up — only the audit-trail LOG
+// of it does, and that still happens right after, in the background.
+function recordTabAwayViolation(){
+  if(S._tabAwayGuard) return;
+  if(!(S.studentPage==='exam' && S.activeSection)) return;
+  S._tabAwayGuard = true;
+  const sec = S.activeSection;
+  const count = ++sec.tabSwitchCount;
+  const limit = sec.tabSwitchLimit || 3;
+  playAlertBeep();
+  if(count >= limit){
+    toast(`Too many tab switches (${count}/${limit}) — this section is being auto-submitted`,'err');
+    handleSectionSubmit(true, 'auto_tab_switch');
+  } else {
+    toast(`Warning ${count}/${limit}: switching tabs/windows during the exam is recorded`,'err');
+  }
+  // Server log + device/IP capture happen AFTER the warning already fired —
+  // best-effort, never blocking or gating the deterrent above. If the
+  // server's own count ever disagrees with the local one (e.g. this same
+  // attempt is also open in another tab), it corrects silently next time.
+  (async()=>{
+    try{
+      const { data, error } = await logActivityWithRetry({p_token:S.studentToken, p_attempt_id:sec.attemptId, p_event_type:'tab_switch'});
+      if(error && isSessionInvalidError(error)){ handleSessionKickedOut(); return; }
+      if(typeof data === 'number') sec.tabSwitchCount = data;
+      logViolationDeviceInfo(sec.attemptId, 'tab_switch');
+    }catch(e){ /* purely a logging failure — the warning itself already happened */ }
+  })();
 }
 function attachExamSecurity(){
   const sec = S.activeSection;
@@ -7966,34 +8105,31 @@ function attachExamSecurity(){
       return e.returnValue;
     }
   };
+  // Tab-switch detection previously relied ONLY on visibilitychange/
+  // document.hidden — which, on several OS/browser combinations, does NOT
+  // fire when the student Alt-Tabs to a different application while the
+  // browser window itself stays open (not minimized, not covered): the tab
+  // is still technically "visible" even though the student is looking at
+  // another app. window.blur fires reliably in that exact case (any loss
+  // of window focus, same-browser tab switch or a different application),
+  // so it's now also wired in as a second, more reliable trigger for the
+  // same violation — with a guard so switching away only counts ONCE per
+  // "episode" even though both events can fire together for an in-browser
+  // tab switch.
+  window.onblur = ()=>{ recordTabAwayViolation(); };
+  window.onfocus = ()=>{ S._tabAwayGuard = false; };
   document.onvisibilitychange = async ()=>{
-    if(document.hidden && S.studentPage==='exam' && S.activeSection){
-      const { data, error } = await logActivityWithRetry({p_token:S.studentToken, p_attempt_id:S.activeSection.attemptId, p_event_type:'tab_switch'});
-      if(error && isSessionInvalidError(error)){ handleSessionKickedOut(); return; }
-      logViolationDeviceInfo(S.activeSection.attemptId, 'tab_switch');
-      const count = data ?? (++S.activeSection.tabSwitchCount);
-      S.activeSection.tabSwitchCount = count;
-      const limit = S.activeSection.tabSwitchLimit || 3;
-      playAlertBeep();
-      if(count >= limit){
-        toast(`Too many tab switches (${count}/${limit}) — this section is being auto-submitted`,'err');
-        handleSectionSubmit(true, 'auto_tab_switch');
-      } else {
-        toast(`Warning ${count}/${limit}: switching tabs/windows during the exam is recorded`,'err');
-      }
-    }
+    if(document.hidden){ recordTabAwayViolation(); }
+    else { S._tabAwayGuard = false; }
   };
-  document.onfullscreenchange = async ()=>{
+  document.onfullscreenchange = ()=>{
     if(sec.fullscreenRequired && !document.fullscreenElement && S.studentPage==='exam' && S.activeSection){
-      const { data, error } = await logActivityWithRetry({p_token:S.studentToken, p_attempt_id:S.activeSection.attemptId, p_event_type:'fullscreen_exit'});
-      if(error && isSessionInvalidError(error)){ handleSessionKickedOut(); return; }
-      logViolationDeviceInfo(S.activeSection.attemptId, 'fullscreen_exit');
-      // Enforced the same way as tab-switching: repeatedly leaving fullscreen
-      // is just as easy a way to consult outside material, so it now counts
-      // toward the same violation limit instead of only ever being logged.
-      const count = data ?? (++S.activeSection.fullscreenExitCount);
-      S.activeSection.fullscreenExitCount = count;
-      const limit = S.activeSection.tabSwitchLimit || 3;
+      // Same local-first fix as recordTabAwayViolation() above — the beep/
+      // toast fire immediately, the server log happens right after in the
+      // background, never gating the deterrent on a network round trip.
+      const activeSec = S.activeSection;
+      const count = ++activeSec.fullscreenExitCount;
+      const limit = activeSec.tabSwitchLimit || 3;
       playAlertBeep();
       if(count >= limit){
         toast(`Too many fullscreen exits (${count}/${limit}) — this section is being auto-submitted`,'err');
@@ -8001,6 +8137,14 @@ function attachExamSecurity(){
       } else {
         toast(`Warning ${count}/${limit}: leaving full-screen mode during the exam is recorded — please stay in full-screen`,'err');
       }
+      (async()=>{
+        try{
+          const { data, error } = await logActivityWithRetry({p_token:S.studentToken, p_attempt_id:activeSec.attemptId, p_event_type:'fullscreen_exit'});
+          if(error && isSessionInvalidError(error)){ handleSessionKickedOut(); return; }
+          if(typeof data === 'number') activeSec.fullscreenExitCount = data;
+          logViolationDeviceInfo(activeSec.attemptId, 'fullscreen_exit');
+        }catch(e){ /* purely a logging failure — the warning itself already happened */ }
+      })();
     }
   };
   if(sec.disableCopyPaste){
@@ -8013,6 +8157,8 @@ function detachExamSecurity(){
   window.onbeforeunload = null;
   window.ononline = null;
   window.onoffline = null;
+  window.onblur = null;
+  window.onfocus = null;
   document.onvisibilitychange = null;
   document.onfullscreenchange = null;
   document.oncontextmenu = null;
